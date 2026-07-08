@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0F1B2B">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Level Up — 30 Day System</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===== TODAY ===== -->
+  <section class="screen" id="screen-today">
+    <header class="hero">
+      <div class="hero-top">
+        <div class="hero-daylabel" id="today-daylabel">Tuesday</div>
+        <div class="hero-clock" id="today-clock">05:00</div>
+      </div>
+      <div class="streak-row">
+        <div class="streak-flame" id="streak-flame">🔥</div>
+        <div class="streak-num" id="streak-num">0</div>
+        <div class="streak-label">day streak</div>
+      </div>
+      <div class="next-card" id="next-card">
+        <div class="next-label">UP NEXT</div>
+        <div class="next-block" id="next-block-name">—</div>
+        <div class="next-countdown" id="next-countdown">—</div>
+      </div>
+    </header>
+
+    <div class="timeline-wrap">
+      <div class="timeline-label">TODAY'S TIMELINE</div>
+      <div class="timeline-track" id="timeline-track"></div>
+      <div class="timeline-legend" id="timeline-legend"></div>
+    </div>
+
+    <div class="section-title">Habit Check-in</div>
+    <div class="habit-list" id="habit-list"></div>
+
+    <div class="section-title">Score</div>
+    <div class="score-card">
+      <div class="score-ring-wrap">
+        <svg viewBox="0 0 120 120" class="score-ring">
+          <circle cx="60" cy="60" r="52" class="ring-bg"/>
+          <circle cx="60" cy="60" r="52" class="ring-fg" id="score-ring-fg"/>
+        </svg>
+        <div class="score-ring-num" id="score-ring-num">0%</div>
+      </div>
+      <div class="score-copy">
+        <div id="score-msg">Check in on your habits to see today's score.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SCHEDULE ===== -->
+  <section class="screen hidden" id="screen-schedule">
+    <header class="page-header">
+      <div class="page-title">Schedule</div>
+      <div class="page-sub">Tap a day type to preview</div>
+    </header>
+    <div class="daytype-tabs" id="daytype-tabs">
+      <button class="daytype-tab" data-type="tuethu">Tue / Thu</button>
+      <button class="daytype-tab" data-type="monwedfri">Mon / Wed / Fri</button>
+      <button class="daytype-tab" data-type="weekend">Weekend</button>
+    </div>
+    <div class="schedule-list" id="schedule-list"></div>
+  </section>
+
+  <!-- ===== TRACKER ===== -->
+  <section class="screen hidden" id="screen-tracker">
+    <header class="page-header">
+      <div class="page-title">Tracker</div>
+      <div class="page-sub">30-day streak heatmap</div>
+    </header>
+    <div class="heatmap-wrap">
+      <div class="heatmap-dow">
+        <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+      </div>
+      <div class="heatmap-grid" id="heatmap-grid"></div>
+      <div class="heatmap-legend">
+        <span>Less</span>
+        <i style="background:#1B2A3E"></i>
+        <i style="background:#3A5A47"></i>
+        <i style="background:#2E9A5C"></i>
+        <i style="background:#3DDC84"></i>
+        <span>More</span>
+      </div>
+    </div>
+    <div class="section-title">Habit Completion</div>
+    <div class="bar-list" id="bar-list"></div>
+    <div class="day-detail hidden" id="day-detail"></div>
+  </section>
+
+  <!-- ===== READING ===== -->
+  <section class="screen hidden" id="screen-reading">
+    <header class="page-header">
+      <div class="page-title">Reading</div>
+      <div class="page-sub">One primary book at a time</div>
+    </header>
+    <div class="reading-list" id="reading-list"></div>
+  </section>
+
+  <!-- ===== SETTINGS ===== -->
+  <section class="screen hidden" id="screen-settings">
+    <header class="page-header">
+      <div class="page-title">Settings</div>
+      <div class="page-sub">Notifications &amp; data</div>
+    </header>
+
+    <div class="settings-card">
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-title">Reminders</div>
+          <div class="settings-row-sub" id="notif-status">Checking permission…</div>
+        </div>
+        <button class="toggle-btn" id="notif-toggle">Enable</button>
+      </div>
+      <p class="settings-note">Reminders fire 5 minutes before each block while the app is open or running in the background. For alerts when the app is fully closed, keep a browser tab pinned, or use the Google Calendar script from your tracker sheet as a backup.</p>
+    </div>
+
+    <div class="settings-card">
+      <div class="settings-row-title">Backup your data</div>
+      <p class="settings-note">Everything is stored only on this phone. Export a backup regularly so you never lose your streak.</p>
+      <div class="settings-btn-row">
+        <button class="secondary-btn" id="export-btn">Export backup</button>
+        <button class="secondary-btn" id="import-btn">Import backup</button>
+      </div>
+      <input type="file" id="import-file" accept="application/json" style="display:none">
+    </div>
+
+    <div class="settings-card">
+      <div class="settings-row-title">Reset</div>
+      <p class="settings-note">Clears all check-ins and starts the 30 days over. This cannot be undone.</p>
+      <button class="danger-btn" id="reset-btn">Reset all data</button>
+    </div>
+
+    <div class="settings-footer">Level Up — 30-Day System · v1.0</div>
+  </section>
+
+</div>
+
+<nav class="tabbar">
+  <button class="tab active" data-screen="today">
+    <svg viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>
+    <span>Today</span>
+  </button>
+  <button class="tab" data-screen="schedule">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+    <span>Schedule</span>
+  </button>
+  <button class="tab" data-screen="tracker">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    <span>Tracker</span>
+  </button>
+  <button class="tab" data-screen="reading">
+    <svg viewBox="0 0 24 24"><path d="M4 4h7a3 3 0 013 3v13a3 3 0 00-3-3H4zM20 4h-7a3 3 0 00-3 3v13a3 3 0 013-3h7z"/></svg>
+    <span>Reading</span>
+  </button>
+  <button class="tab" data-screen="settings">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+    <span>Settings</span>
+  </button>
+</nav>
+
+<div id="toast" class="toast"></div>
+
+<script src="schedule-data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
