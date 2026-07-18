@@ -18,7 +18,7 @@ const SCHEDULES = {
     ["16:15","17:30","Work — deep block 4","work"],
     ["17:30","18:15","Cook & eat dinner","cook"],
     ["20:30","21:00","Wind-down — no screens, dim lights, journal note","reset"],
-    ["21:00","21:15","Lights out / Sleep","reset"],
+    ["23:00","23:15","Lights out / Sleep","reset"],
   ],
   monwedfri: [
     ["05:00","05:15","Wake, morning pages","habit"],
