@@ -15,7 +15,7 @@ function loadState(){
     const raw = localStorage.getItem(STORAGE_KEY);
     if(raw) return JSON.parse(raw);
   }catch(e){}
-  return { startDate: todayKey(), checkins:{}, reading:{}, notifFired:{}, notifEnabled:false };
+  return { startDate: todayKey(), checkins:{}, reading:{}, notifFired:{}, notifEnabled:false, activeAlarm:null };
 }
 let state = loadState();
 if(!state.reading || Object.keys(state.reading).length===0){
@@ -447,7 +447,118 @@ document.getElementById("reset-btn").addEventListener("click", ()=>{
   }
 });
 
+// ===================== ALARM (looping, foreground) =====================
+let audioCtx = null;
+let alarmToneTimer = null;
+let alarmVibrateTimer = null;
+let alarmActive = false;
+
+// Unlock audio on first user gesture (required by mobile browsers)
+function unlockAudio(){
+  if(!audioCtx){
+    try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){}
+  }
+  if(audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+}
+["click","touchstart"].forEach(evt=>document.addEventListener(evt, unlockAudio, {once:false}));
+
+function beepOnce(){
+  if(!audioCtx) return;
+  const t0 = audioCtx.currentTime;
+  [880, 660].forEach((freq, i)=>{
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, t0 + i*0.22);
+    gain.gain.exponentialRampToValueAtTime(0.35, t0 + i*0.22 + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + i*0.22 + 0.2);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t0 + i*0.22);
+    osc.stop(t0 + i*0.22 + 0.22);
+  });
+}
+
+function startAlarmLoop(){
+  unlockAudio();
+  beepOnce();
+  alarmToneTimer = setInterval(beepOnce, 1400);
+  if(navigator.vibrate){
+    navigator.vibrate([300,150,300,150,300]);
+    alarmVibrateTimer = setInterval(()=>navigator.vibrate([300,150,300,150,300]), 1400);
+  }
+}
+function stopAlarmLoop(){
+  clearInterval(alarmToneTimer);
+  clearInterval(alarmVibrateTimer);
+  if(navigator.vibrate) navigator.vibrate(0);
+}
+
+function showAlarm(blockName, id){
+  alarmActive = true;
+  state.activeAlarm = { id, blockName, firedAt: Date.now() };
+  saveState();
+  document.getElementById("alarm-block-name").textContent = blockName;
+  document.getElementById("alarm-overlay").classList.remove("hidden");
+  startAlarmLoop();
+}
+function dismissAlarm(){
+  alarmActive = false;
+  state.activeAlarm = null;
+  saveState();
+  document.getElementById("alarm-overlay").classList.add("hidden");
+  stopAlarmLoop();
+}
+document.getElementById("alarm-dismiss-btn").addEventListener("click", dismissAlarm);
+
+// If the app was opened/returned to with an alarm still pending (unacknowledged
+// within the last 20 min), surface it immediately.
+function checkPendingAlarmOnResume(){
+  if(state.activeAlarm && (Date.now() - state.activeAlarm.firedAt) < 20*60*1000){
+    showAlarm(state.activeAlarm.blockName, state.activeAlarm.id);
+  }
+}
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState === "visible") checkPendingAlarmOnResume();
+});
+
+// Messages from the service worker (fired when a notification is tapped)
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.addEventListener("message", (e)=>{
+    if(e.data && e.data.type === "ALARM_SHOW") showAlarm(e.data.block, e.data.id);
+    if(e.data && e.data.type === "ALARM_DISMISS") dismissAlarm();
+  });
+}
+
 // ===================== NOTIFICATION SCHEDULER =====================
+async function fireReminder(block, id){
+  const title = "Up next: " + block[2];
+  const options = {
+    body: `Starting at ${block[0]}`,
+    icon: "icons/icon-192.png",
+    badge: "icons/icon-192.png",
+    tag: id,
+    requireInteraction: true,
+    vibrate: [300,150,300,150,300],
+    actions: [{ action:"dismiss", title:"Dismiss" }],
+    data: { blockName: block[2], id }
+  };
+  if("serviceWorker" in navigator){
+    try{
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, options);
+    }catch(e){
+      new Notification(title, options);
+    }
+  } else {
+    new Notification(title, options);
+  }
+  // If the app happens to already be in the foreground, loop the alarm right away too
+  if(document.visibilityState === "visible"){
+    showAlarm(block[2], id);
+  }
+}
+
 function checkReminders(){
   if(!state.notifEnabled || Notification.permission!=="granted") return;
   const now = new Date();
@@ -460,7 +571,7 @@ function checkReminders(){
     const fireAt = start - 5;
     const id = key+"-"+idx;
     if(nowMins >= fireAt && nowMins < start && !state.notifFired[key].includes(id)){
-      new Notification("Up next: "+b[2], { body:`Starting at ${b[0]}`, icon:"icons/icon-192.png", tag:id });
+      fireReminder(b, id);
       state.notifFired[key].push(id);
       saveState();
     }
@@ -473,6 +584,7 @@ function renderInit(){
   renderAll();
   renderSchedule(currentDayType);
   refreshNotifUI();
+  checkPendingAlarmOnResume();
 }
 renderInit();
 setInterval(renderAll, 30000);

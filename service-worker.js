@@ -1,4 +1,4 @@
-const CACHE = "levelup-v1";
+const CACHE = "levelup-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -27,5 +27,33 @@ self.addEventListener("activate", e=>{
 self.addEventListener("fetch", e=>{
   e.respondWith(
     caches.match(e.request).then(cached=>cached || fetch(e.request).catch(()=>cached))
+  );
+});
+
+self.addEventListener("notificationclick", (event)=>{
+  const data = event.notification.data || {};
+  event.notification.close();
+
+  if(event.action === "dismiss"){
+    event.waitUntil(
+      self.clients.matchAll({ type:"window", includeUncontrolled:true }).then(clientList=>{
+        clientList.forEach(c=>c.postMessage({ type:"ALARM_DISMISS", id:data.id }));
+      })
+    );
+    return;
+  }
+
+  event.waitUntil(
+    self.clients.matchAll({ type:"window", includeUncontrolled:true }).then(clientList=>{
+      for(const client of clientList){
+        if("focus" in client){
+          client.postMessage({ type:"ALARM_SHOW", block:data.blockName, id:data.id });
+          return client.focus();
+        }
+      }
+      if(self.clients.openWindow){
+        return self.clients.openWindow("./index.html");
+      }
+    })
   );
 });

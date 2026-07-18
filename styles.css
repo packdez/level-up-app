@@ -256,3 +256,33 @@ body{
 .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
 
 ::-webkit-scrollbar{display:none;}
+
+/* ---------- Alarm Overlay ---------- */
+.alarm-overlay{
+  position:fixed; inset:0; z-index:999;
+  background: radial-gradient(circle at 50% 30%, #1C2E48, #0A121D 75%);
+  display:flex; align-items:center; justify-content:center;
+  animation: alarmFadeIn .3s ease;
+}
+.alarm-overlay.hidden{display:none;}
+@keyframes alarmFadeIn{from{opacity:0;} to{opacity:1;}}
+
+.alarm-pulse{
+  position:absolute; width:260px; height:260px; border-radius:50%;
+  background: rgba(242,169,59,.18);
+  animation: pulseRing 1.4s ease-out infinite;
+}
+@keyframes pulseRing{
+  0%{ transform:scale(.7); opacity:.9; }
+  100%{ transform:scale(2.2); opacity:0; }
+}
+
+.alarm-content{position:relative; text-align:center; padding:0 32px;}
+.alarm-label{font-family:var(--font-mono); font-size:13px; letter-spacing:.15em; color:var(--gold); margin-bottom:10px;}
+.alarm-block-name{font-family:var(--font-display); font-size:30px; font-weight:700; color:var(--text); margin-bottom:40px; line-height:1.25;}
+.alarm-dismiss{
+  background:var(--gold); color:#1a1204; border:none;
+  padding:16px 44px; border-radius:30px; font-size:16px; font-weight:700;
+  font-family:var(--font-body); box-shadow:0 6px 24px rgba(242,169,59,.35);
+}
+.alarm-dismiss:active{ transform:scale(.96); }

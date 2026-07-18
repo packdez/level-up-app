@@ -52,7 +52,7 @@ const SCHEDULES = {
     ["18:00","18:45","Cook & eat dinner","cook"],
     ["18:45","20:30","Fully unstructured — protected, no work","rest"],
     ["20:30","21:00","Wind-down — no screens, dim lights, journal note","reset"],
-    ["23:00","23:15","Lights out / Sleep","reset"],
+    ["21:00","21:15","Lights out / Sleep","reset"],
   ],
 };
 
