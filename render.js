@@ -21,24 +21,39 @@ function renderToday(){
   const nextBlock = blocksRaw.find(b=>timeToMin(b.start) > nowMin) || null;
   const nowLabel = pad2(today.getHours())+':'+pad2(today.getMinutes());
 
-  const habitRowsHtml = HABIT_DEFS.map(h=>{
+  const habitRowsHtml = S.habitDefs.map(h=>{
+    if(h.type==='number'){
+      const val = checkin[h.field]||0;
+      const met = val>=h.target;
+      return `
+      <div style="display:flex;align-items:center;gap:12px;background:${t.surface};border-radius:14px;padding:12px 14px;border:1px solid ${t.border}">
+        <div style="width:26px;height:26px;border-radius:50%;background:${met?'#F2A93B':'transparent'};border:2px solid ${met?'#F2A93B':t.textMuted};flex-shrink:0"></div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600;color:${t.text}">${escapeHtml(h.label)}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${t.textMuted}">target ${h.target}+</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button data-act="numHabitDec" data-arg="${h.field}" style="width:26px;height:26px;border-radius:8px;background:${t.surface2};color:${t.text};border:none;font-size:16px;cursor:pointer">–</button>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#F2A93B;min-width:32px;text-align:center">${val.toFixed(1)}</div>
+          <button data-act="numHabitInc" data-arg="${h.field}" style="width:26px;height:26px;border-radius:8px;background:${t.surface2};color:${t.text};border:none;font-size:16px;cursor:pointer">+</button>
+        </div>
+      </div>`;
+    }
     const on = checkin[h.field];
     return `
     <div data-act="toggleHabit" data-arg="${h.field}" style="display:flex;align-items:center;gap:12px;background:${t.surface};border-radius:14px;padding:12px 14px;border:1px solid ${t.border};cursor:pointer">
       <div style="width:26px;height:26px;border-radius:50%;background:${on?'#F2A93B':'transparent'};border:2px solid ${on?'#F2A93B':t.textMuted};flex-shrink:0"></div>
-      <div style="flex:1"><div style="font-size:14px;font-weight:600;color:${t.text}">${h.label}</div></div>
+      <div style="flex:1"><div style="font-size:14px;font-weight:600;color:${t.text}">${escapeHtml(h.label)}</div></div>
       <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${on?'#F2A93B':t.textMuted}">${on?'DONE':'—'}</div>
     </div>`;
   }).join('');
 
-  const dw = checkin.deepWorkHours||0;
-  const dwMet = dw>=5;
   const liCountWeek = (()=>{ let n=0; for(let i=0;i<7;i++){ const dk=dateKey(addDays(today,-i)); const c=S.checkins[dk]; if(c&&c.linkedin) n++; } return n; })();
   const monthCutoff = dateKey(addDays(today,-29));
   const monthSpent = S.financeEntries.filter(e=>e.type==='expense'&&e.date>=monthCutoff&&(e.currency||'XOF')===S.financeCurrencyView).reduce((s,e)=>s+e.amount,0);
 
   return `
-  <div style="padding:20px 20px 100px;animation:lu-fadein 0.35s ease">
+  <div style="padding:20px 20px 100px">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px">
       <div>
         <div style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:${t.text};letter-spacing:-0.3px">${today.toLocaleDateString(undefined,{weekday:'long'})}</div>
@@ -89,21 +104,12 @@ function renderToday(){
       </div>
     </div>
 
-    <div style="font-size:11px;font-weight:600;color:${t.textMuted};text-transform:uppercase;letter-spacing:0.5px;margin:18px 0 10px">Core habits</div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin:18px 0 10px">
+      <span style="font-size:11px;font-weight:600;color:${t.textMuted};text-transform:uppercase;letter-spacing:0.5px">Core habits</span>
+      <button data-act="openHabits" style="background:none;border:none;color:#F2A93B;font-size:11px;font-weight:600;cursor:pointer">Edit</button>
+    </div>
     <div style="display:flex;flex-direction:column;gap:8px">
       ${habitRowsHtml}
-      <div style="display:flex;align-items:center;gap:12px;background:${t.surface};border-radius:14px;padding:12px 14px;border:1px solid ${t.border}">
-        <div style="width:26px;height:26px;border-radius:50%;background:${dwMet?'#F2A93B':'transparent'};border:2px solid ${dwMet?'#F2A93B':t.textMuted};flex-shrink:0"></div>
-        <div style="flex:1">
-          <div style="font-size:14px;font-weight:600;color:${t.text}">Deep Work Hours</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${t.textMuted}">target 5.0+ hrs</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <button data-act="deepWorkDec" style="width:26px;height:26px;border-radius:8px;background:${t.surface2};color:${t.text};border:none;font-size:16px;cursor:pointer">–</button>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#F2A93B;min-width:32px;text-align:center">${dw.toFixed(1)}</div>
-          <button data-act="deepWorkInc" style="width:26px;height:26px;border-radius:8px;background:${t.surface2};color:${t.text};border:none;font-size:16px;cursor:pointer">+</button>
-        </div>
-      </div>
       <div data-act="toggleLinkedin" style="display:flex;align-items:center;gap:12px;background:${t.surface};border-radius:14px;padding:12px 14px;border:1px solid ${t.border};cursor:pointer">
         <div style="width:26px;height:26px;border-radius:50%;background:${checkin.linkedin?'#F2A93B':'transparent'};border:2px solid ${checkin.linkedin?'#F2A93B':t.textMuted};flex-shrink:0"></div>
         <div style="flex:1">
@@ -151,7 +157,7 @@ function renderSchedule(){
   }).join('');
 
   return `
-  <div style="padding:20px 20px 100px;animation:lu-fadein 0.35s ease">
+  <div style="padding:20px 20px 100px">
     <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:${t.text};margin-bottom:14px">Schedule</div>
     <div style="display:flex;gap:8px;margin-bottom:16px">${optsHtml}</div>
     <div style="display:flex;flex-direction:column;gap:8px">${rowsHtml}</div>
@@ -178,27 +184,31 @@ function renderTracker(){
     const tKey = dateKey(tDate);
     const tCheckin = getCheckin(tKey);
     const tScore = scoreOf(tCheckin);
-    let tCompleted=0; ['morningPages','reading','cameraTalk','workout'].forEach(f=>{ if(tCheckin[f]) tCompleted++; }); if(tCheckin.deepWorkHours>=5) tCompleted++;
-    const rows = HABIT_DEFS.map(h=>{
+    let tCompleted=0;
+    S.habitDefs.forEach(h=>{ if(h.type==='number'){ if((tCheckin[h.field]||0)>=h.target) tCompleted++; } else if(tCheckin[h.field]) tCompleted++; });
+    const rows = S.habitDefs.map(h=>{
+      if(h.type==='number'){
+        const val = tCheckin[h.field]||0; const met = val>=h.target;
+        return `<div data-act="trackerToggleNumHabit" data-arg="${h.field}" style="display:flex;align-items:center;gap:12px;background:${t.surface};border-radius:14px;padding:12px 14px;border:1px solid ${t.border};cursor:pointer">
+          <div style="width:24px;height:24px;border-radius:50%;background:${met?'#F2A93B':'transparent'};border:2px solid ${met?'#F2A93B':t.textMuted};flex-shrink:0"></div>
+          <div style="flex:1;font-size:14px;font-weight:600;color:${t.text}">${escapeHtml(h.label)} ${h.target}+</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${met?'#F2A93B':t.textMuted}">${val.toFixed(1)}</div>
+        </div>`;
+      }
       const on = tCheckin[h.field];
       return `<div data-act="trackerToggleHabit" data-arg="${h.field}" style="display:flex;align-items:center;gap:12px;background:${t.surface};border-radius:14px;padding:12px 14px;border:1px solid ${t.border};cursor:pointer">
         <div style="width:24px;height:24px;border-radius:50%;background:${on?'#F2A93B':'transparent'};border:2px solid ${on?'#F2A93B':t.textMuted};flex-shrink:0"></div>
-        <div style="flex:1;font-size:14px;font-weight:600;color:${t.text}">${h.label}</div>
+        <div style="flex:1;font-size:14px;font-weight:600;color:${t.text}">${escapeHtml(h.label)}</div>
         <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${on?'#F2A93B':t.textMuted}">${on?'DONE':'—'}</div>
       </div>`;
-    }).join('') + `
-      <div data-act="trackerToggleDeepWork" style="display:flex;align-items:center;gap:12px;background:${t.surface};border-radius:14px;padding:12px 14px;border:1px solid ${t.border};cursor:pointer">
-        <div style="width:24px;height:24px;border-radius:50%;background:${tCheckin.deepWorkHours>=5?'#F2A93B':'transparent'};border:2px solid ${tCheckin.deepWorkHours>=5?'#F2A93B':t.textMuted};flex-shrink:0"></div>
-        <div style="flex:1;font-size:14px;font-weight:600;color:${t.text}">Deep Work 5h+</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${tCheckin.deepWorkHours>=5?'#F2A93B':t.textMuted}">${tCheckin.deepWorkHours.toFixed(1)}h</div>
-      </div>`;
+    }).join('');
     body = `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <button data-act="trackerPrevDay" style="background:${t.surface};border:1px solid ${t.border};color:${t.text};width:32px;height:32px;border-radius:10px;cursor:pointer">‹</button>
         <div style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;color:${t.text}">${tDate.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}</div>
         <button data-act="trackerNextDay" style="background:${t.surface};border:1px solid ${t.border};color:${t.text};width:32px;height:32px;border-radius:10px;cursor:pointer">›</button>
       </div>
-      <div style="text-align:center;margin-bottom:16px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#F2A93B">${tCompleted}/5 completed · ${tScore}%</span></div>
+      <div style="text-align:center;margin-bottom:16px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#F2A93B">${tCompleted}/${S.habitDefs.length} completed · ${tScore}%</span></div>
       <div style="display:flex;flex-direction:column;gap:8px">${rows}</div>`;
   }
 
@@ -219,11 +229,17 @@ function renderTracker(){
     const weekDaysArr=[]; for(let i=0;i<7;i++) weekDaysArr.push(dateKey(addDays(monday,i)));
     let wSum=0,wN=0; weekDaysArr.forEach(dk=>{ const c=S.checkins[dk]; if(c){ wSum+=scoreOf(c); wN++; } });
     const weekAvg = wN?Math.round(wSum/wN):0;
-    const barsHtml = HABIT_FIELDS_BASE.map(hf=>{
-      let n=0; weekDaysArr.forEach(dk=>{ const c=S.checkins[dk]; if(c&&c[hf.field]) n++; });
+    const barDefs = [...S.habitDefs, {field:'linkedin', label:'LinkedIn', type:'bool', color:'#35C4E0'}];
+    const barsHtml = barDefs.map(hf=>{
+      let n=0;
+      weekDaysArr.forEach(dk=>{
+        const c=S.checkins[dk]; if(!c) return;
+        if(hf.type==='number'){ if((c[hf.field]||0)>=hf.target) n++; }
+        else if(c[hf.field]) n++;
+      });
       const pct = Math.round(n/7*100);
       return `<div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;color:${t.text};margin-bottom:4px"><span>${hf.label}</span><span style="font-family:'JetBrains Mono',monospace;color:${t.textMuted}">${pct}%</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:${t.text};margin-bottom:4px"><span>${escapeHtml(hf.label)}</span><span style="font-family:'JetBrains Mono',monospace;color:${t.textMuted}">${pct}%</span></div>
         <div style="height:8px;border-radius:4px;background:${t.surface2};overflow:hidden"><div style="height:100%;width:${pct}%;background:${hf.color}"></div></div>
       </div>`;
     }).join('');
@@ -283,7 +299,7 @@ function renderTracker(){
   }
 
   return `
-  <div style="padding:20px 20px 100px;animation:lu-fadein 0.35s ease">
+  <div style="padding:20px 20px 100px">
     <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:${t.text};margin-bottom:14px">Tracker</div>
     <div style="display:flex;gap:6px;margin-bottom:18px">${viewOpts}</div>
     ${body}

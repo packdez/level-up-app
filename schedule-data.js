@@ -18,19 +18,21 @@ const CURRENCY_INFO = {
   NGN:{symbol:'₦', prefix:true, decimals:0}
 };
 
-const HABIT_DEFS = [
-  {field:'morningPages', label:'Morning Pages'},
-  {field:'reading', label:'Reading'},
-  {field:'cameraTalk', label:'Camera Talk Practice'},
-  {field:'workout', label:'Workout'}
-];
-const HABIT_FIELDS_BASE = [
-  {field:'morningPages', label:'Morning Pages', color:'#F2A93B'},
-  {field:'reading', label:'Reading', color:'#4C8DFF'},
-  {field:'cameraTalk', label:'Camera Talk', color:'#9B6BFF'},
-  {field:'workout', label:'Workout', color:'#FF6B5E'},
-  {field:'linkedin', label:'LinkedIn', color:'#35C4E0'}
-];
+// Editable habit list. Each habit is either a daily yes/no ('bool') or a daily
+// numeric target ('number', e.g. Deep Work Hours). This is the DEFAULT seed only —
+// the live list lives in state (S.habitDefs) so the user can add/remove/rename/reorder
+// without any code change. Field names of the four defaults match legacy checkin keys
+// so existing saved data keeps working after this update.
+const HABIT_COLOR_POOL = ['#F2A93B','#4C8DFF','#9B6BFF','#FF6B5E','#35C4E0','#3DDC84','#FF8A65','#C792EA'];
+function defaultHabitDefs(){
+  return [
+    {id:uid(), field:'morningPages', label:'Morning Pages', type:'bool', color:'#F2A93B'},
+    {id:uid(), field:'reading', label:'Reading', type:'bool', color:'#4C8DFF'},
+    {id:uid(), field:'cameraTalk', label:'Camera Talk Practice', type:'bool', color:'#9B6BFF'},
+    {id:uid(), field:'workout', label:'Workout', type:'bool', color:'#FF6B5E'},
+    {id:uid(), field:'deepWorkHours', label:'Deep Work Hours', type:'number', target:5, color:'#35C4E0'}
+  ];
+}
 
 const SCHEDULE_DEFAULT = {
   jog: [

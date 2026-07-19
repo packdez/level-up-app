@@ -1,4 +1,4 @@
-const CACHE = 'levelup-v4';
+const CACHE = 'levelup-v5';
 const ASSETS = [
   './', './index.html', './styles.css',
   './schedule-data.js', './state.js', './actions.js', './render.js', './render-finance.js', './render-modals.js', './app.js',

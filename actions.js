@@ -17,16 +17,23 @@ ACTIONS.openMoreSheet = () => setState({moreOpen:true});
 ACTIONS.closeMoreSheet = () => setState({moreOpen:false});
 ACTIONS.openReading = () => setState({moreOpen:false, moreScreen:'reading'});
 ACTIONS.openReview = () => setState({moreOpen:false, moreScreen:'review'});
+ACTIONS.openHabits = () => setState({moreOpen:false, moreScreen:'habits'});
 ACTIONS.openSettings = () => setState({moreOpen:false, moreScreen:'settings'});
 ACTIONS.closeMoreScreen = () => setState({moreScreen:null});
 
 // ---- today: habits ----
 ACTIONS.toggleHabit = (field) => toggleHabit(field);
 ACTIONS.toggleLinkedin = () => toggleHabit('linkedin');
-ACTIONS.deepWorkInc = () => { const key=dateKey(new Date()); const cur=getCheckin(key); setCheckin(key,{deepWorkHours: Math.round((cur.deepWorkHours+0.5)*10)/10}); };
-ACTIONS.deepWorkDec = () => { const key=dateKey(new Date()); const cur=getCheckin(key); setCheckin(key,{deepWorkHours: Math.max(0,Math.round((cur.deepWorkHours-0.5)*10)/10)}); };
+ACTIONS.numHabitInc = (field) => { const key=dateKey(new Date()); const cur=getCheckin(key); const h=S.habitDefs.find(x=>x.field===field); const step=h&&h.step?h.step:0.5; setCheckin(key,{[field]: Math.round((cur[field]+step)*10)/10}); };
+ACTIONS.numHabitDec = (field) => { const key=dateKey(new Date()); const cur=getCheckin(key); const h=S.habitDefs.find(x=>x.field===field); const step=h&&h.step?h.step:0.5; setCheckin(key,{[field]: Math.max(0,Math.round((cur[field]-step)*10)/10)}); };
+ACTIONS.deepWorkInc = () => ACTIONS.numHabitInc('deepWorkHours');
+ACTIONS.deepWorkDec = () => ACTIONS.numHabitDec('deepWorkHours');
 ACTIONS.trackerToggleHabit = (field) => { const tDate=addDays(new Date(), S.trackerDayOffset); const tKey=dateKey(tDate); const c=getCheckin(tKey); setCheckin(tKey,{[field]: !c[field]}); };
-ACTIONS.trackerToggleDeepWork = () => { const tDate=addDays(new Date(), S.trackerDayOffset); const tKey=dateKey(tDate); const c=getCheckin(tKey); setCheckin(tKey,{deepWorkHours: c.deepWorkHours>=5?0:5}); };
+ACTIONS.trackerToggleNumHabit = (field) => {
+  const tDate=addDays(new Date(), S.trackerDayOffset); const tKey=dateKey(tDate); const c=getCheckin(tKey);
+  const h=S.habitDefs.find(x=>x.field===field); const target=h?h.target:5;
+  setCheckin(tKey,{[field]: c[field]>=target?0:target});
+};
 
 // ---- schedule ----
 ACTIONS.setScheduleView = (v) => setState({scheduleView:v});
@@ -261,6 +268,39 @@ ACTIONS.logHoldingUpdate = () => {
 };
 ACTIONS.askDeleteHolding = () => { const h=S.investments.find(x=>x.id===S.investmentDetailId); askConfirm('Delete holding "'+(h?h.name:'')+'"?', 'deleteHolding'); };
 ACTIONS.deleteHolding = () => { const id=S.investmentDetailId; setState({investments:S.investments.filter(h=>h.id!==id), investmentDetailId:null, confirm:null}); };
+
+// ---- manage habits ----
+ACTIONS.openNewHabit = () => setState({newHabitOpen:true, newHabitDraft:{label:'', type:'bool', target:5}});
+ACTIONS.closeNewHabit = () => setState({newHabitOpen:false});
+ACTIONS.setNewHabitLabel = (v) => setState({newHabitDraft:{...S.newHabitDraft, label:v}});
+ACTIONS.setNewHabitType = (v) => setState({newHabitDraft:{...S.newHabitDraft, type:v}});
+ACTIONS.setNewHabitTarget = (v) => setState({newHabitDraft:{...S.newHabitDraft, target:Number(v)||1}});
+ACTIONS.submitNewHabit = () => {
+  const d = S.newHabitDraft; const label = (d.label||'').trim(); if(!label) return;
+  const field = 'h_'+uid();
+  const color = HABIT_COLOR_POOL[S.habitDefs.length % HABIT_COLOR_POOL.length];
+  const def = {id:uid(), field, label, type:d.type, color, ...(d.type==='number'?{target:d.target||1}:{})};
+  setState({habitDefs:[...S.habitDefs, def], newHabitOpen:false});
+};
+ACTIONS.renameHabit = (arg) => {
+  const idx = arg.indexOf('::'); const id = arg.slice(0,idx); const label = arg.slice(idx+2);
+  setState({habitDefs:S.habitDefs.map(h=> h.id===id ? {...h, label} : h)});
+};
+ACTIONS.setHabitTargetValue = (arg) => {
+  const idx = arg.indexOf('::'); const id = arg.slice(0,idx); const val = Number(arg.slice(idx+2))||1;
+  setState({habitDefs:S.habitDefs.map(h=> h.id===id ? {...h, target:val} : h)});
+};
+ACTIONS.askRemoveHabit = (arg) => { const [id,label] = [arg.split('::')[0], decodeURIComponent(arg.split('::')[1])]; askConfirm('Remove "'+label+'" from Core Habits? Past check-ins for it are kept but it will stop showing up.', 'removeHabitConfirmed', id); };
+ACTIONS.removeHabitConfirmed = (id) => setState({habitDefs:S.habitDefs.filter(h=>h.id!==id), confirm:null});
+ACTIONS.moveHabit = (arg) => {
+  const [id,dirStr] = arg.split('::'); const dir=Number(dirStr);
+  const list = S.habitDefs.slice();
+  const idx = list.findIndex(h=>h.id===id);
+  const swapIdx = idx+dir;
+  if(idx<0||swapIdx<0||swapIdx>=list.length) return;
+  [list[idx], list[swapIdx]] = [list[swapIdx], list[idx]];
+  setState({habitDefs:list});
+};
 
 // ---- confirm dialog ----
 ACTIONS.confirmYes = () => { const c=S.confirm; if(c && c.actionName){ ACTIONS[c.actionName](c.actionArg); } else { setState({confirm:null}); } };

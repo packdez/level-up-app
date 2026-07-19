@@ -3,25 +3,28 @@
 function renderMoreSheet(){
   if(!S.moreOpen) return '';
   const t = T();
+  const anim = JUST_OPENED.moreSheet ? 'animation:lu-slideup 0.22s ease;' : '';
   return `
-  <div data-act="closeMoreSheet" style="position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:29;animation:lu-fadein 0.2s ease"></div>
-  <div style="position:absolute;left:0;right:0;bottom:0;background:${t.surface};border-radius:22px 22px 0 0;padding:10px 16px 26px;z-index:30;animation:lu-slideup 0.22s ease;border-top:1px solid ${t.border}">
+  <div data-act="closeMoreSheet" style="position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:29"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;background:${t.surface};border-radius:22px 22px 0 0;padding:10px 16px 26px;z-index:30;${anim}border-top:1px solid ${t.border}">
     <div style="width:36px;height:4px;border-radius:2px;background:${t.textMuted};opacity:0.3;margin:2px auto 14px"></div>
     <button data-act="openReading" style="width:100%;text-align:left;background:none;border:none;padding:12px 6px;font-size:14px;font-weight:600;color:${t.text};cursor:pointer;border-bottom:1px solid ${t.border}">Reading List</button>
     <button data-act="openReview" style="width:100%;text-align:left;background:none;border:none;padding:12px 6px;font-size:14px;font-weight:600;color:${t.text};cursor:pointer;border-bottom:1px solid ${t.border}">Review</button>
+    <button data-act="openHabits" style="width:100%;text-align:left;background:none;border:none;padding:12px 6px;font-size:14px;font-weight:600;color:${t.text};cursor:pointer;border-bottom:1px solid ${t.border}">Manage Habits</button>
     <button data-act="openSettings" style="width:100%;text-align:left;background:none;border:none;padding:12px 6px;font-size:14px;font-weight:600;color:${t.text};cursor:pointer">Settings</button>
   </div>`;
 }
 
-function modalShell(title, closeAct, innerHtml, extraPadBottom){
+function modalShell(title, closeAct, innerHtml, extraPadBottom, justOpened){
   const t = T();
+  const anim = justOpened ? 'animation:lu-slideup 0.25s ease;' : '';
   return `
-  <div style="position:absolute;inset:0;background:${t.bg};z-index:20;display:flex;flex-direction:column;animation:lu-slideup 0.25s ease">
-    <div style="display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid ${t.border}">
+  <div style="position:absolute;inset:0;background:${t.bg};z-index:20;display:flex;flex-direction:column;${anim}">
+    <div style="display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid ${t.border};flex-shrink:0">
       <button data-act="${closeAct}" style="background:none;border:none;color:#F2A93B;font-size:20px;cursor:pointer">←</button>
       <div style="font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;color:${t.text}">${title}</div>
     </div>
-    <div style="flex:1;overflow-y:auto;padding:16px 20px ${extraPadBottom||'40px'}">${innerHtml}</div>
+    <div data-scroll-id="modal" style="flex:1;overflow-y:auto;padding:16px 20px ${extraPadBottom||'40px'}">${innerHtml}</div>
   </div>`;
 }
 
@@ -79,7 +82,7 @@ function renderReadingModal(){
     inner += `<button data-act="openAddBook" style="width:100%;padding:12px;border-radius:14px;background:rgba(242,169,59,0.12);border:1px dashed rgba(242,169,59,0.5);color:#F2A93B;font-size:13px;font-weight:600;cursor:pointer;margin-top:6px">+ Add book</button>`;
   }
 
-  return modalShell('Reading List', 'closeMoreScreen', inner, '100px');
+  return modalShell('Reading List', 'closeMoreScreen', inner, '100px', JUST_OPENED.modalScreen);
 }
 
 function renderReviewModal(){
@@ -99,7 +102,7 @@ function renderReviewModal(){
   const missedItems = [];
   periodDays.forEach(dk=>{
     const c = S.checkins[dk];
-    HABIT_DEFS.forEach(h=>{ if(!c || !c[h.field]){ missedItems.push({label:h.label+' — '+dk, dk, field:h.field}); } });
+    S.habitDefs.filter(h=>h.type==='bool').forEach(h=>{ if(!c || !c[h.field]){ missedItems.push({label:h.label+' — '+dk, dk, field:h.field}); } });
   });
 
   const history = Object.keys(isWeekly?S.weeklyReviews:S.monthlyReviews).sort((a,b)=>a<b?1:-1);
@@ -144,7 +147,51 @@ function renderReviewModal(){
     <div style="font-size:11px;font-weight:600;color:${t.textMuted};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">History</div>
     <div style="display:flex;flex-direction:column;gap:10px">${historyHtml}</div>`;
 
-  return modalShell('Review', 'closeMoreScreen', inner);
+  return modalShell('Review', 'closeMoreScreen', inner, null, JUST_OPENED.modalScreen);
+}
+
+function renderManageHabitsModal(){
+  const t = T();
+  const rows = S.habitDefs.map((h,i)=>`
+    <div style="background:${t.surface};border-radius:14px;padding:12px 14px;border:1px solid ${t.border};margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:${h.type==='number'?'8px':'0'}">
+        <div style="width:8px;height:8px;border-radius:50%;background:${h.color};flex-shrink:0"></div>
+        <input data-act-change="renameHabit" data-arg-prefix="${h.id}::" value="${escapeHtml(h.label)}" style="flex:1;background:none;border:none;color:${t.text};font-size:13.5px;font-weight:600;padding:4px 0">
+        <span style="font-size:10px;color:${t.textMuted};font-family:'JetBrains Mono',monospace;text-transform:uppercase">${h.type==='number'?'number':'yes/no'}</span>
+        <button data-act="moveHabit" data-arg="${h.id}::-1" ${i===0?'disabled':''} style="background:none;border:none;color:${i===0?t.border:t.textMuted};font-size:13px;cursor:pointer">↑</button>
+        <button data-act="moveHabit" data-arg="${h.id}::1" ${i===S.habitDefs.length-1?'disabled':''} style="background:none;border:none;color:${i===S.habitDefs.length-1?t.border:t.textMuted};font-size:13px;cursor:pointer">↓</button>
+        <button data-act="askRemoveHabit" data-arg="${h.id}::${encodeURIComponent(h.label)}" style="background:none;border:none;color:#FF6B5E;font-size:15px;cursor:pointer">×</button>
+      </div>
+      ${h.type==='number' ? `
+      <div style="display:flex;align-items:center;gap:8px;padding-left:16px">
+        <span style="font-size:11px;color:${t.textMuted}">Daily target</span>
+        <input type="number" step="0.5" data-act-change="setHabitTargetValue" data-arg-prefix="${h.id}::" value="${h.target}" style="width:60px;background:${t.surface2};border:1px solid ${t.border};border-radius:6px;color:${t.text};font-family:'JetBrains Mono',monospace;font-size:12px;padding:4px 6px">
+      </div>` : ''}
+    </div>`).join('');
+
+  const nd = S.newHabitDraft;
+  const addForm = S.newHabitOpen ? `
+    <div style="background:${t.surface};border-radius:14px;padding:14px;border:1px solid ${t.border};margin-top:6px">
+      <input data-act-change="setNewHabitLabel" value="${escapeHtml(nd.label)}" placeholder="Habit name" style="width:100%;box-sizing:border-box;background:${t.surface2};border:1px solid ${t.border};border-radius:8px;color:${t.text};font-size:13px;padding:9px 10px;margin-bottom:10px">
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button data-act="setNewHabitType" data-arg="bool" style="flex:1;padding:8px;border-radius:10px;background:${nd.type==='bool'?'#F2A93B22':t.surface2};border:none;color:${nd.type==='bool'?'#F2A93B':t.textMuted};font-size:12px;font-weight:600;cursor:pointer">Yes / No</button>
+        <button data-act="setNewHabitType" data-arg="number" style="flex:1;padding:8px;border-radius:10px;background:${nd.type==='number'?'#F2A93B22':t.surface2};border:none;color:${nd.type==='number'?'#F2A93B':t.textMuted};font-size:12px;font-weight:600;cursor:pointer">Daily number</button>
+      </div>
+      ${nd.type==='number' ? `<input type="number" step="0.5" data-act-change="setNewHabitTarget" value="${nd.target}" placeholder="Daily target" style="width:100%;box-sizing:border-box;background:${t.surface2};border:1px solid ${t.border};border-radius:8px;color:${t.text};font-family:'JetBrains Mono',monospace;font-size:13px;padding:9px 10px;margin-bottom:10px">` : ''}
+      <div style="display:flex;gap:8px">
+        <button data-act="submitNewHabit" style="flex:1;background:#F2A93B;border:none;color:#0F1B2B;font-size:12px;font-weight:700;padding:9px;border-radius:10px;cursor:pointer">Add habit</button>
+        <button data-act="closeNewHabit" style="flex:1;background:${t.surface2};border:none;color:${t.textMuted};font-size:12px;padding:9px;border-radius:10px;cursor:pointer">Cancel</button>
+      </div>
+    </div>` : `<button data-act="openNewHabit" style="width:100%;padding:12px;border-radius:14px;background:rgba(242,169,59,0.12);border:1px dashed rgba(242,169,59,0.5);color:#F2A93B;font-size:13px;font-weight:600;cursor:pointer;margin-top:6px">+ Add habit</button>`;
+
+  const inner = `
+    <div style="font-size:11px;font-weight:600;color:${t.textMuted};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Core habits</div>
+    <div style="font-size:10.5px;color:${t.textMuted};margin-bottom:12px;line-height:1.5">These are the habits tracked every day on Today and Tracker. Tap a name to rename it, use the arrows to reorder, or remove one — nothing about past check-ins is lost.</div>
+    ${rows}
+    ${addForm}
+    <div style="font-size:10.5px;color:${t.textMuted};margin-top:16px;line-height:1.5">LinkedIn Post stays separate since it's tracked as a weekly goal (2x/week) rather than a daily habit.</div>`;
+
+  return modalShell('Manage Habits', 'closeMoreScreen', inner, null, JUST_OPENED.modalScreen);
 }
 
 function renderSettingsModal(){
@@ -184,7 +231,7 @@ function renderSettingsModal(){
     <div style="font-size:10.5px;color:${t.textMuted};margin-bottom:22px;line-height:1.5">Export keeps a backup or moves data to another device. Reset clears everything so you can start fresh.</div>
     <div style="font-size:10.5px;color:${t.textMuted};line-height:1.6">Level Up · personal build<br/>All data stored locally on this device.</div>`;
 
-  return modalShell('Settings', 'closeMoreScreen', inner);
+  return modalShell('Settings', 'closeMoreScreen', inner, null, JUST_OPENED.modalScreen);
 }
 
 function renderFinanceSettingsModal(){
@@ -224,7 +271,7 @@ function renderFinanceSettingsModal(){
       </div>
     </div>`;
 
-  return modalShell('Budgets & Categories', 'closeFinanceSettings', inner);
+  return modalShell('Budgets & Categories', 'closeFinanceSettings', inner, null, JUST_OPENED.financeSettings);
 }
 
 function renderLedgerModal(){
@@ -265,7 +312,7 @@ function renderLedgerModal(){
     </div>`;
   }).join('') || `<div style="font-size:12px;color:${t.textMuted}">No transactions yet.</div>`;
 
-  return modalShell('All transactions', 'closeLedger', monthsHtml);
+  return modalShell('All transactions', 'closeLedger', monthsHtml, null, JUST_OPENED.ledger);
 }
 
 function renderInvestmentDetail(){
@@ -330,17 +377,18 @@ function renderInvestmentDetail(){
       <button data-act="askDeleteHolding" style="flex:1;background:rgba(255,107,94,0.12);border:1px solid rgba(255,107,94,0.4);color:#FF6B5E;font-size:13px;padding:11px;border-radius:12px;cursor:pointer">Delete</button>
     </div>`;
 
-  return modalShell(escapeHtml(dh.name), 'closeInvestmentDetail', inner);
+  return modalShell(escapeHtml(dh.name), 'closeInvestmentDetail', inner, null, JUST_OPENED.investmentDetail);
 }
 
 function renderBlockEditorSheet(){
   if(!S.editingBlock) return '';
   const t = T();
   const eb = S.editingBlock;
+  const anim = JUST_OPENED.blockEditor ? 'animation:lu-slideup 0.22s ease;' : '';
   const catOptions = Object.keys(CAT_LABELS).map(k=>`<option value="${k}" ${eb.cat===k?'selected':''}>${CAT_LABELS[k]}</option>`).join('');
   return `
   <div data-act="closeBlockEditor" style="position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:29"></div>
-  <div style="position:absolute;left:0;right:0;bottom:0;background:${t.surface};border-radius:22px 22px 0 0;padding:16px 20px 26px;z-index:30;animation:lu-slideup 0.22s ease;border-top:1px solid ${t.border}">
+  <div style="position:absolute;left:0;right:0;bottom:0;background:${t.surface};border-radius:22px 22px 0 0;padding:16px 20px 26px;z-index:30;${anim}border-top:1px solid ${t.border}">
     <div style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;color:${t.text};margin-bottom:14px">${eb.id?'Edit block':'New block'}</div>
     <div style="display:flex;gap:8px;margin-bottom:10px">
       <input type="time" data-act-change="setBlockStart" value="${eb.start}" style="flex:1;background:${t.surface2};border:1px solid ${t.border};border-radius:10px;color:${t.text};font-family:'JetBrains Mono',monospace;font-size:13px;padding:9px 10px">
@@ -360,10 +408,11 @@ function renderAddExpenseSheet(){
   if(!S.addExpenseOpen) return '';
   const t = T();
   const d = S.expenseDraft;
+  const anim = JUST_OPENED.addExpense ? 'animation:lu-slideup 0.22s ease;' : '';
   const catOptions = S.financeCategories.map(c=>`<option value="${escapeHtml(c)}" ${d.category===c?'selected':''}>${escapeHtml(c)}</option>`).join('');
   return `
   <div data-act="closeAddExpense" style="position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:29"></div>
-  <div style="position:absolute;left:0;right:0;bottom:0;background:${t.surface};border-radius:22px 22px 0 0;padding:16px 20px 26px;z-index:30;animation:lu-slideup 0.22s ease;border-top:1px solid ${t.border}">
+  <div style="position:absolute;left:0;right:0;bottom:0;background:${t.surface};border-radius:22px 22px 0 0;padding:16px 20px 26px;z-index:30;${anim}border-top:1px solid ${t.border}">
     <div style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;color:${t.text};margin-bottom:14px">Add entry</div>
     <div style="display:flex;gap:8px;margin-bottom:10px">
       <button data-act="setTypeExpense" style="flex:1;padding:8px;border-radius:10px;background:${d.type==='expense'?'#FF6B5E22':t.surface2};border:none;color:${d.type==='expense'?'#FF6B5E':t.textMuted};font-size:12px;font-weight:600;cursor:pointer">Expense</button>
@@ -389,9 +438,10 @@ function renderAddHoldingSheet(){
   if(!S.addHoldingOpen) return '';
   const t = T();
   const d = S.holdingDraft;
+  const anim = JUST_OPENED.addHolding ? 'animation:lu-slideup 0.22s ease;' : '';
   return `
   <div data-act="closeAddHolding" style="position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:29"></div>
-  <div style="position:absolute;left:0;right:0;bottom:0;background:${t.surface};border-radius:22px 22px 0 0;padding:16px 20px 26px;z-index:30;animation:lu-slideup 0.22s ease;border-top:1px solid ${t.border};max-height:80%;overflow-y:auto">
+  <div data-scroll-id="holdingsheet" style="position:absolute;left:0;right:0;bottom:0;background:${t.surface};border-radius:22px 22px 0 0;padding:16px 20px 26px;z-index:30;${anim}border-top:1px solid ${t.border};max-height:80%;overflow-y:auto">
     <div style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;color:${t.text};margin-bottom:14px">${S.editingHoldingId?'Edit holding':'Add holding'}</div>
     <input data-act-change="setHoldingName" value="${escapeHtml(d.name)}" placeholder="Name (e.g. Index Fund)" style="width:100%;box-sizing:border-box;background:${t.surface2};border:1px solid ${t.border};border-radius:10px;color:${t.text};font-size:13px;padding:10px 12px;margin-bottom:10px">
     <div style="display:flex;gap:8px;margin-bottom:10px">

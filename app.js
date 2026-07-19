@@ -1,8 +1,30 @@
 // ===================== MASTER RENDER =====================
 
+let PREV_SNAPSHOT = {moreOpen:false, moreScreen:null, financeSettingsOpen:false, ledgerOpen:false, investmentDetailId:null, editingBlock:null, addExpenseOpen:false, addHoldingOpen:false, confirm:null};
+let JUST_OPENED = {};
+function computeJustOpened(){
+  JUST_OPENED = {
+    moreSheet: S.moreOpen && !PREV_SNAPSHOT.moreOpen,
+    modalScreen: !!S.moreScreen && S.moreScreen !== PREV_SNAPSHOT.moreScreen,
+    financeSettings: S.financeSettingsOpen && !PREV_SNAPSHOT.financeSettingsOpen,
+    ledger: S.ledgerOpen && !PREV_SNAPSHOT.ledgerOpen,
+    investmentDetail: !!S.investmentDetailId && S.investmentDetailId !== PREV_SNAPSHOT.investmentDetailId,
+    blockEditor: !!S.editingBlock && !PREV_SNAPSHOT.editingBlock,
+    addExpense: S.addExpenseOpen && !PREV_SNAPSHOT.addExpenseOpen,
+    addHolding: S.addHoldingOpen && !PREV_SNAPSHOT.addHoldingOpen,
+    confirm: !!S.confirm && !PREV_SNAPSHOT.confirm
+  };
+  PREV_SNAPSHOT = {moreOpen:S.moreOpen, moreScreen:S.moreScreen, financeSettingsOpen:S.financeSettingsOpen, ledgerOpen:S.ledgerOpen, investmentDetailId:S.investmentDetailId, editingBlock:S.editingBlock, addExpenseOpen:S.addExpenseOpen, addHoldingOpen:S.addHoldingOpen, confirm:S.confirm};
+}
+
 function render(){
+  computeJustOpened();
   const t = T();
   document.body.style.background = t.bg;
+
+  // preserve scroll position of any scrollable container across the re-render
+  const scrollMap = {};
+  document.querySelectorAll('[data-scroll-id]').forEach(el=>{ scrollMap[el.getAttribute('data-scroll-id')] = el.scrollTop; });
 
   let screenHtml = '';
   if(S.tab==='today') screenHtml = renderToday();
@@ -14,6 +36,7 @@ function render(){
   if(S.moreScreen==='reading') modalHtml = renderReadingModal();
   else if(S.moreScreen==='review') modalHtml = renderReviewModal();
   else if(S.moreScreen==='settings') modalHtml = renderSettingsModal();
+  else if(S.moreScreen==='habits') modalHtml = renderManageHabitsModal();
   if(S.financeSettingsOpen) modalHtml += renderFinanceSettingsModal();
   if(S.ledgerOpen) modalHtml += renderLedgerModal();
   if(S.investmentDetailId) modalHtml += renderInvestmentDetail();
@@ -21,7 +44,7 @@ function render(){
   const root = document.getElementById('screen-root');
   root.style.background = t.bg;
   root.innerHTML = `
-    <div style="flex:1;overflow-y:auto;overflow-x:hidden;position:relative;background:${t.bg}">
+    <div data-scroll-id="main" style="flex:1;overflow-y:auto;overflow-x:hidden;position:relative;background:${t.bg}">
       ${screenHtml}
       ${modalHtml}
     </div>
@@ -33,6 +56,12 @@ function render(){
     ${renderAlarmOverlay()}
     ${renderConfirmModal()}
   `;
+
+  // restore scroll positions
+  document.querySelectorAll('[data-scroll-id]').forEach(el=>{
+    const id = el.getAttribute('data-scroll-id');
+    if(scrollMap[id]!=null) el.scrollTop = scrollMap[id];
+  });
 
   // re-attach import file listener (input is recreated each render)
   const importInput = document.getElementById('import-file-input');
@@ -152,8 +181,9 @@ function checkReminders(){
   blocks.forEach((b,idx)=>{
     if(!S.notifPrefs[b.cat] && ['habit','work','cook'].includes(b.cat)) return;
     const start = timeToMin(b.start);
-    const fireAt = start-5;
-    const id = key+'-'+idx;
+    const fireAt = Math.max(0, start-5); // never fire "before midnight" for blocks in the first 5 min of the day
+    const stableId = b.id || idx; // block.id is stable across edits/reorders; idx is a fallback only
+    const id = key+'-'+stableId;
     if(nowMin>=fireAt && nowMin<start && !S.notifFired[key].includes(id)){
       fireReminder(b, id);
       S.notifFired[key].push(id);
@@ -162,7 +192,7 @@ function checkReminders(){
   });
 }
 setInterval(checkReminders, 20000);
-setInterval(()=>{ if(S.tab==='today') render(); }, 30000);
+setInterval(()=>{ if(S.tab==='today' && document.visibilityState==='visible' && !S.alarmActive) render(); }, 30000);
 
 // pending alarm resume (if a notification fired while backgrounded and user taps it)
 function checkPendingAlarmOnResume(){

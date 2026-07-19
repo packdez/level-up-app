@@ -25,7 +25,10 @@ function defaultState(){
     checkins: {}, financeEntries: [], weeklyReviews: {}, monthlyReviews: {},
     scheduleTemplates: cloneSchedule(), readingList: defaultReadingList(),
     financeCategories: FIN_CATS_DEFAULT.slice(),
-    notifFired: {}
+    notifFired: {},
+    habitDefs: defaultHabitDefs(),
+    editingHabitId: null, newHabitOpen: false,
+    newHabitDraft: {label:'', type:'bool', target:5}
   };
 }
 
@@ -39,7 +42,7 @@ function loadState(){
         // transient/UI state should never be restored from storage
         tab:'today', moreOpen:false, moreScreen:null, addExpenseOpen:false, financeSettingsOpen:false,
         addBookOpen:false, alarmActive:null, confirm:null, addHoldingOpen:false, investmentDetailId:null,
-        editingBlock:null, ledgerOpen:false
+        editingBlock:null, ledgerOpen:false, editingHabitId:null, newHabitOpen:false
       });
     }
   }catch(e){}
@@ -54,7 +57,8 @@ function persist(){
     checkins:s.checkins, financeEntries:s.financeEntries, weeklyReviews:s.weeklyReviews, monthlyReviews:s.monthlyReviews,
     scheduleTemplates:s.scheduleTemplates, readingList:s.readingList, financeCategories:s.financeCategories,
     budgets:s.budgets, notifPrefs:s.notifPrefs, notifEnabled:s.notifEnabled, investments:s.investments,
-    theme:s.theme, currency:s.currency, notifFired:s.notifFired, financeCurrencyView:s.financeCurrencyView, investCurrencyView:s.investCurrencyView
+    theme:s.theme, currency:s.currency, notifFired:s.notifFired, financeCurrencyView:s.financeCurrencyView, investCurrencyView:s.investCurrencyView,
+    habitDefs:s.habitDefs
   };
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave)); }catch(e){}
 }
@@ -68,17 +72,24 @@ function setState(patch){
 function fmtMoney(n){ return fmtMoneyFor(n, S.currency); }
 function T(){ return S.theme==='dark' ? DARK_T : LIGHT_T; }
 
+function emptyCheckin(){
+  const c = {linkedin:false};
+  S.habitDefs.forEach(h=>{ c[h.field] = h.type==='number' ? 0 : false; });
+  return c;
+}
 function getCheckin(key){
-  return S.checkins[key] || {morningPages:false, reading:false, cameraTalk:false, workout:false, deepWorkHours:0, linkedin:false};
+  const stored = S.checkins[key];
+  const blank = emptyCheckin();
+  return stored ? {...blank, ...stored} : blank;
 }
 function scoreOf(c){
+  if(!S.habitDefs.length) return 0;
   let n=0;
-  if(c.morningPages) n++;
-  if(c.reading) n++;
-  if(c.cameraTalk) n++;
-  if(c.workout) n++;
-  if(c.deepWorkHours>=5) n++;
-  return Math.round(n/5*100);
+  S.habitDefs.forEach(h=>{
+    if(h.type==='number'){ if((c[h.field]||0) >= h.target) n++; }
+    else { if(c[h.field]) n++; }
+  });
+  return Math.round(n/S.habitDefs.length*100);
 }
 function setCheckin(key, patch){
   const cur = getCheckin(key);

@@ -9,7 +9,7 @@ function renderFinance(){
     <button data-act="setModeInvesting" style="flex:1;padding:9px;border-radius:12px;background:${S.financeMode==='investing'?'#F2A93B22':t.surface};border:1px solid ${t.border};color:${S.financeMode==='investing'?'#F2A93B':t.textMuted};font-size:12px;font-weight:600;cursor:pointer">Investments</button>`;
 
   return `
-  <div style="padding:20px 20px 110px;animation:lu-fadein 0.35s ease">
+  <div style="padding:20px 20px 110px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
       <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:${t.text}">Finance</div>
       ${S.financeMode==='spending' ? `<button data-act="openFinanceSettings" style="background:${t.surface};border:1px solid ${t.border};color:${t.text};width:32px;height:32px;border-radius:10px;cursor:pointer;font-size:14px">⚙</button>` : ''}
