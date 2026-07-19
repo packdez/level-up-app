@@ -1,7 +1,7 @@
 {
-  "name": "Level Up — 30 Day System",
+  "name": "Level Up",
   "short_name": "Level Up",
-  "description": "Daily habits, schedule, and streak tracker.",
+  "description": "Habits, schedule, tracking, and finance — all in one place.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
