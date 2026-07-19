@@ -80,11 +80,22 @@ ACTIONS.setModeSpending = () => setState({financeMode:'spending'});
 ACTIONS.setModeInvesting = () => setState({financeMode:'investing'});
 ACTIONS.prevMonth = () => setState({financeMonthOffset:S.financeMonthOffset-1});
 ACTIONS.nextMonth = () => setState({financeMonthOffset:Math.min(0,S.financeMonthOffset+1)});
+ACTIONS.setFinanceCurrencyView = (v) => setState({financeCurrencyView:v});
+ACTIONS.setInvestCurrencyView = (v) => setState({investCurrencyView:v});
 
 // ---- finance settings ----
 ACTIONS.openFinanceSettings = () => setState({financeSettingsOpen:true});
 ACTIONS.closeFinanceSettings = () => setState({financeSettingsOpen:false});
-ACTIONS.setBudget = (arg) => { const [cat,val] = [arg.split('::')[0], arg.split('::')[1]]; setState({budgets:{...S.budgets, [cat]: val===''?undefined:Number(val)}}); };
+ACTIONS.setBudget = (arg) => {
+  const idx = arg.indexOf('::'); const cat = arg.slice(0,idx); const val = arg.slice(idx+2);
+  const mi = monthInfo(S.financeMonthOffset);
+  setBudgetValue(S.financeCurrencyView, mi.key, cat, val);
+};
+ACTIONS.copyBudgetsFromLastMonth = () => {
+  const mi = monthInfo(S.financeMonthOffset);
+  const prevMi = monthInfo(S.financeMonthOffset-1);
+  copyBudgetsForward(S.financeCurrencyView, prevMi.key, mi.key);
+};
 ACTIONS.setNewCategoryName = (v) => setState({newCategoryName:v});
 ACTIONS.addCategory = () => { const name=(S.newCategoryName||'').trim(); if(!name || S.financeCategories.includes(name)) return; setState({financeCategories:[...S.financeCategories, name], newCategoryName:''}); };
 ACTIONS.removeCategory = (name) => askConfirm('Remove category "'+name+'"?', 'removeCategoryConfirmed', name);
@@ -95,7 +106,7 @@ ACTIONS.openLedger = () => setState({ledgerOpen:true});
 ACTIONS.closeLedger = () => setState({ledgerOpen:false});
 
 // ---- add expense ----
-ACTIONS.openAddExpense = () => setState({addExpenseOpen:true, expenseDraft:{amount:'', category:S.financeCategories[0], desc:'', type:'expense'}});
+ACTIONS.openAddExpense = () => setState({addExpenseOpen:true, expenseDraft:{amount:'', category:S.financeCategories[0], desc:'', type:'expense', currency:S.financeCurrencyView}});
 ACTIONS.closeAddExpense = () => setState({addExpenseOpen:false});
 ACTIONS.setTypeExpense = () => setState({expenseDraft:{...S.expenseDraft, type:'expense'}});
 ACTIONS.setTypeIncome = () => setState({expenseDraft:{...S.expenseDraft, type:'income'}});
@@ -103,12 +114,13 @@ ACTIONS.setTypeSavings = () => setState({expenseDraft:{...S.expenseDraft, type:'
 ACTIONS.setExpDesc = (v) => setState({expenseDraft:{...S.expenseDraft, desc:v}});
 ACTIONS.setExpAmount = (v) => setState({expenseDraft:{...S.expenseDraft, amount:v}});
 ACTIONS.setExpCategory = (v) => setState({expenseDraft:{...S.expenseDraft, category:v}});
+ACTIONS.setExpCurrency = (v) => setState({expenseDraft:{...S.expenseDraft, currency:v}});
 ACTIONS.submitExpense = () => {
   const d = S.expenseDraft;
   const amt = parseFloat(d.amount); if(!amt || amt<=0) return;
   const cat = d.type==='income' ? 'Income' : d.type==='savings' ? 'Savings' : d.category;
   const desc = d.desc || cat;
-  const entry = {id:uid(), date:dateKey(new Date()), amount:amt, category:cat, desc, type:d.type};
+  const entry = {id:uid(), date:dateKey(new Date()), amount:amt, category:cat, desc, type:d.type, currency:d.currency||'XOF'};
   setState({financeEntries:[entry, ...S.financeEntries], addExpenseOpen:false});
 };
 ACTIONS.removeExpense = (arg) => { const [id,desc] = arg.split('::'); askConfirm('Delete "'+desc+'"?', 'removeExpenseConfirmed', id); };
@@ -210,10 +222,10 @@ ACTIONS.handleImportFile = (file) => {
 };
 
 // ---- investments ----
-ACTIONS.openAddHolding = () => setState({addHoldingOpen:true, editingHoldingId:null, holdingDraft:{name:'',invested:'',currentValue:'',startDate:dateKey(new Date()),expectedReturnPct:'',maturityDate:'',platform:''}});
+ACTIONS.openAddHolding = () => setState({addHoldingOpen:true, editingHoldingId:null, holdingDraft:{name:'',invested:'',currentValue:'',startDate:dateKey(new Date()),expectedReturnPct:'',maturityDate:'',platform:'',currency:'USD'}});
 ACTIONS.editDetailHolding = () => {
   const h = S.investments.find(x=>x.id===S.investmentDetailId); if(!h) return;
-  setState({addHoldingOpen:true, editingHoldingId:h.id, holdingDraft:{name:h.name, invested:String(h.invested), currentValue:String(h.currentValue), startDate:h.startDate||'', expectedReturnPct:h.expectedReturnPct!=null?String(h.expectedReturnPct):'', maturityDate:h.maturityDate||'', platform:h.platform||''}});
+  setState({addHoldingOpen:true, editingHoldingId:h.id, holdingDraft:{name:h.name, invested:String(h.invested), currentValue:String(h.currentValue), startDate:h.startDate||'', expectedReturnPct:h.expectedReturnPct!=null?String(h.expectedReturnPct):'', maturityDate:h.maturityDate||'', platform:h.platform||'', currency:h.currency||'USD'}});
 };
 ACTIONS.closeAddHolding = () => setState({addHoldingOpen:false});
 ACTIONS.setHoldingName = (v) => setState({holdingDraft:{...S.holdingDraft, name:v}});
@@ -223,6 +235,7 @@ ACTIONS.setHoldingStartDate = (v) => setState({holdingDraft:{...S.holdingDraft, 
 ACTIONS.setHoldingExpectedReturn = (v) => setState({holdingDraft:{...S.holdingDraft, expectedReturnPct:v}});
 ACTIONS.setHoldingMaturity = (v) => setState({holdingDraft:{...S.holdingDraft, maturityDate:v}});
 ACTIONS.setHoldingPlatform = (v) => setState({holdingDraft:{...S.holdingDraft, platform:v}});
+ACTIONS.setHoldingCurrency = (v) => setState({holdingDraft:{...S.holdingDraft, currency:v}});
 ACTIONS.submitHolding = () => {
   const d = S.holdingDraft; if(!d.name) return;
   const invested = parseFloat(d.invested)||0, cur = parseFloat(d.currentValue)||0;
@@ -231,10 +244,10 @@ ACTIONS.submitHolding = () => {
     setState({investments:S.investments.map(h=>{
       if(h.id!==S.editingHoldingId) return h;
       const hist = (h.currentValue!==cur) ? [...(h.valueHistory||[]), {date:today,value:cur}] : (h.valueHistory||[]);
-      return {...h, name:d.name, invested, currentValue:cur, startDate:d.startDate, expectedReturnPct:d.expectedReturnPct===''?null:Number(d.expectedReturnPct), maturityDate:d.maturityDate, platform:d.platform, valueHistory:hist};
+      return {...h, name:d.name, invested, currentValue:cur, startDate:d.startDate, expectedReturnPct:d.expectedReturnPct===''?null:Number(d.expectedReturnPct), maturityDate:d.maturityDate, platform:d.platform, currency:d.currency||'USD', valueHistory:hist};
     }), addHoldingOpen:false});
   } else {
-    setState({investments:[...S.investments, {id:uid(), name:d.name, invested, currentValue:cur, startDate:d.startDate||today, expectedReturnPct:d.expectedReturnPct===''?null:Number(d.expectedReturnPct), maturityDate:d.maturityDate, platform:d.platform||'—', valueHistory:[{date:d.startDate||today,value:invested},{date:today,value:cur}]}], addHoldingOpen:false});
+    setState({investments:[...S.investments, {id:uid(), name:d.name, invested, currentValue:cur, startDate:d.startDate||today, expectedReturnPct:d.expectedReturnPct===''?null:Number(d.expectedReturnPct), maturityDate:d.maturityDate, platform:d.platform||'—', currency:d.currency||'USD', valueHistory:[{date:d.startDate||today,value:invested},{date:today,value:cur}]}], addHoldingOpen:false});
   }
 };
 ACTIONS.openInvestmentDetail = (id) => setState({investmentDetailId:id, investmentTrendPeriod:'month', quickUpdateValue:''});

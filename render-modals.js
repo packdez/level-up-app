@@ -189,10 +189,18 @@ function renderSettingsModal(){
 
 function renderFinanceSettingsModal(){
   const t = T();
+  const cur = S.financeCurrencyView;
+  const mi = monthInfo(S.financeMonthOffset);
+  const budgets = budgetsForMonth(cur, mi.key);
+  const prevMi = monthInfo(S.financeMonthOffset-1);
+  const prevBudgets = budgetsForMonth(cur, prevMi.key);
+  const hasPrev = Object.keys(prevBudgets).length>0;
+  const hasCurrent = Object.keys(budgets).length>0;
+
   const budgetRows = S.financeCategories.map(cat=>`
     <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0">
       <span style="font-size:12px;color:${t.text}">${escapeHtml(cat)}</span>
-      <input type="number" data-act-change="setBudget" data-arg-prefix="${cat}::" value="${S.budgets[cat]!=null?S.budgets[cat]:''}" placeholder="—" style="width:80px;background:${t.surface2};border:1px solid ${t.border};border-radius:8px;color:${t.text};font-family:'JetBrains Mono',monospace;font-size:12px;padding:5px 8px;text-align:right">
+      <input type="number" data-act-change="setBudget" data-arg-prefix="${cat}::" value="${budgets[cat]!=null?budgets[cat]:''}" placeholder="—" style="width:90px;background:${t.surface2};border:1px solid ${t.border};border-radius:8px;color:${t.text};font-family:'JetBrains Mono',monospace;font-size:12px;padding:5px 8px;text-align:right">
     </div>`).join('');
   const categoryRows = S.financeCategories.map(cat=>`
     <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0">
@@ -201,7 +209,11 @@ function renderFinanceSettingsModal(){
     </div>`).join('');
 
   const inner = `
-    <div style="font-size:11px;font-weight:600;color:${t.textMuted};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Monthly budgets</div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+      <div style="font-size:11px;font-weight:600;color:${t.textMuted};text-transform:uppercase;letter-spacing:0.5px">Budgets — ${cur} · ${mi.label}</div>
+    </div>
+    <div style="font-size:10.5px;color:${t.textMuted};margin-bottom:10px">Budgets are set per month — this month starts empty unless you copy last month's forward.</div>
+    ${!hasCurrent && hasPrev ? `<button data-act="copyBudgetsFromLastMonth" style="width:100%;padding:9px;border-radius:10px;background:rgba(76,141,255,0.12);border:1px solid rgba(76,141,255,0.35);color:#4C8DFF;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:12px">Copy budgets from ${prevMi.label}</button>` : ''}
     <div style="background:${t.surface};border-radius:14px;padding:14px;margin-bottom:22px;border:1px solid ${t.border}">${budgetRows}</div>
     <div style="font-size:11px;font-weight:600;color:${t.textMuted};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Categories</div>
     <div style="background:${t.surface};border-radius:14px;padding:14px;border:1px solid ${t.border}">
@@ -217,9 +229,12 @@ function renderFinanceSettingsModal(){
 
 function renderLedgerModal(){
   const t = T();
-  const monthKeys = Array.from(new Set(S.financeEntries.map(e=>monthKeyOf(e.date)))).sort((a,b)=>a<b?1:-1);
+  const cur = S.financeCurrencyView;
+  const fmt = (n)=>fmtMoneyFor(n, cur);
+  const allInCur = S.financeEntries.filter(e=>(e.currency||'XOF')===cur);
+  const monthKeys = Array.from(new Set(allInCur.map(e=>monthKeyOf(e.date)))).sort((a,b)=>a<b?1:-1);
   const monthsHtml = monthKeys.map(mk=>{
-    const ents = S.financeEntries.filter(e=>monthKeyOf(e.date)===mk);
+    const ents = allInCur.filter(e=>monthKeyOf(e.date)===mk);
     const total = ents.filter(e=>e.type==='expense').reduce((s,e)=>s+e.amount,0);
     const buckets = {};
     ents.forEach(e=>{ const day=Number(e.date.slice(8,10)); const wi=Math.min(4,Math.floor((day-1)/7)); buckets[wi]=buckets[wi]||[]; buckets[wi].push(e); });
@@ -233,11 +248,11 @@ function renderLedgerModal(){
           <div style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0"></div>
           <div style="flex:1;min-width:0;font-size:12px;color:${t.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(e.desc)}</div>
           <div style="font-size:10px;color:${t.textMuted}">${e.date}</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:${amountColor}">${(e.type==='expense'?'-':'+')+fmtMoney(e.amount)}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:${amountColor}">${(e.type==='expense'?'-':'+')+fmt(e.amount)}</div>
         </div>`;
       }).join('');
       return `<div style="margin-bottom:10px">
-        <div style="font-size:10.5px;color:${t.textMuted};text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Week ${Number(wi)+1} · ${fmtMoney(wTotal)}</div>
+        <div style="font-size:10.5px;color:${t.textMuted};text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Week ${Number(wi)+1} · ${fmt(wTotal)}</div>
         <div style="display:flex;flex-direction:column;gap:6px">${entriesHtml}</div>
       </div>`;
     }).join('');
@@ -245,7 +260,7 @@ function renderLedgerModal(){
     return `<div style="margin-bottom:22px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
         <span style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;color:${t.text}">${d.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</span>
-        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#FF6B5E">${fmtMoney(total)}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#FF6B5E">${fmt(total)}</span>
       </div>${weeksHtml}
     </div>`;
   }).join('') || `<div style="font-size:12px;color:${t.textMuted}">No transactions yet.</div>`;
@@ -288,9 +303,9 @@ function renderInvestmentDetail(){
   const inner = `
     ${stale ? `<div style="background:rgba(242,169,59,0.12);border:1px solid rgba(242,169,59,0.35);border-radius:12px;padding:10px 12px;font-size:11.5px;color:#F2A93B;margin-bottom:14px">Value last logged ${daysSince} days ago — worth an update?</div>` : ''}
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
-      <div style="background:${t.surface};border-radius:14px;padding:12px;border:1px solid ${t.border}"><div style="font-size:9.5px;color:${t.textMuted};text-transform:uppercase">Invested</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:${t.text};margin-top:4px">${fmtMoney(dh.invested)}</div></div>
-      <div style="background:${t.surface};border-radius:14px;padding:12px;border:1px solid ${t.border}"><div style="font-size:9.5px;color:${t.textMuted};text-transform:uppercase">Current</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:${t.text};margin-top:4px">${fmtMoney(dh.currentValue)}</div></div>
-      <div style="background:${t.surface};border-radius:14px;padding:12px;border:1px solid ${t.border}"><div style="font-size:9.5px;color:${t.textMuted};text-transform:uppercase">Gain</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:${gainColor};margin-top:4px">${(g>=0?'+':'')+fmtMoney(g)} (${(gp>=0?'+':'')+gp}%)</div></div>
+      <div style="background:${t.surface};border-radius:14px;padding:12px;border:1px solid ${t.border}"><div style="font-size:9.5px;color:${t.textMuted};text-transform:uppercase">Invested</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:${t.text};margin-top:4px">${fmtMoneyFor(dh.invested, dh.currency||'USD')}</div></div>
+      <div style="background:${t.surface};border-radius:14px;padding:12px;border:1px solid ${t.border}"><div style="font-size:9.5px;color:${t.textMuted};text-transform:uppercase">Current</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:${t.text};margin-top:4px">${fmtMoneyFor(dh.currentValue, dh.currency||'USD')}</div></div>
+      <div style="background:${t.surface};border-radius:14px;padding:12px;border:1px solid ${t.border}"><div style="font-size:9.5px;color:${t.textMuted};text-transform:uppercase">Gain</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:${gainColor};margin-top:4px">${(g>=0?'+':'')+fmtMoneyFor(g, dh.currency||'USD')} (${(gp>=0?'+':'')+gp}%)</div></div>
     </div>
     <div style="background:${t.surface};border-radius:14px;padding:14px;margin-bottom:16px;border:1px solid ${t.border};display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:${t.textMuted}">Start date</span><span style="font-family:'JetBrains Mono',monospace;color:${t.text}">${dh.startDate||'—'}</span></div>
@@ -356,7 +371,12 @@ function renderAddExpenseSheet(){
       <button data-act="setTypeSavings" style="flex:1;padding:8px;border-radius:10px;background:${d.type==='savings'?'#F2A93B22':t.surface2};border:none;color:${d.type==='savings'?'#F2A93B':t.textMuted};font-size:12px;font-weight:600;cursor:pointer">Savings</button>
     </div>
     <input data-act-change="setExpDesc" value="${escapeHtml(d.desc)}" placeholder="What was it? e.g. Beans and rice" style="width:100%;box-sizing:border-box;background:${t.surface2};border:1px solid ${t.border};border-radius:10px;color:${t.text};font-size:13px;padding:10px 12px;margin-bottom:10px">
-    <input type="number" data-act-change="setExpAmount" value="${d.amount}" placeholder="Amount" style="width:100%;box-sizing:border-box;background:${t.surface2};border:1px solid ${t.border};border-radius:10px;color:${t.text};font-family:'JetBrains Mono',monospace;font-size:15px;padding:10px 12px;margin-bottom:10px">
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input type="number" data-act-change="setExpAmount" value="${d.amount}" placeholder="Amount" style="flex:1;background:${t.surface2};border:1px solid ${t.border};border-radius:10px;color:${t.text};font-family:'JetBrains Mono',monospace;font-size:15px;padding:10px 12px">
+      <select data-act-change="setExpCurrency" style="width:88px;background:${t.surface2};border:1px solid ${t.border};border-radius:10px;color:${t.text};font-family:'JetBrains Mono',monospace;font-size:13px;padding:10px 6px">
+        ${CUR_LIST.map(c=>`<option value="${c}" ${d.currency===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
     ${d.type==='expense' ? `<select data-act-change="setExpCategory" style="width:100%;box-sizing:border-box;background:${t.surface2};border:1px solid ${t.border};border-radius:10px;color:${t.text};font-size:13px;padding:10px 12px;margin-bottom:16px">${catOptions}</select>` : ''}
     <div style="display:flex;gap:8px">
       <button data-act="submitExpense" style="flex:1;background:#F2A93B;border:none;color:#0F1B2B;font-size:13px;font-weight:700;padding:11px;border-radius:12px;cursor:pointer">Save</button>
@@ -377,6 +397,9 @@ function renderAddHoldingSheet(){
     <div style="display:flex;gap:8px;margin-bottom:10px">
       <input type="number" data-act-change="setHoldingInvested" value="${d.invested}" placeholder="Invested" style="flex:1;background:${t.surface2};border:1px solid ${t.border};border-radius:10px;color:${t.text};font-family:'JetBrains Mono',monospace;font-size:14px;padding:10px 12px">
       <input type="number" data-act-change="setHoldingCurrent" value="${d.currentValue}" placeholder="Current value" style="flex:1;background:${t.surface2};border:1px solid ${t.border};border-radius:10px;color:${t.text};font-family:'JetBrains Mono',monospace;font-size:14px;padding:10px 12px">
+      <select data-act-change="setHoldingCurrency" style="width:78px;background:${t.surface2};border:1px solid ${t.border};border-radius:10px;color:${t.text};font-family:'JetBrains Mono',monospace;font-size:12.5px;padding:10px 4px">
+        ${CUR_LIST.map(c=>`<option value="${c}" ${d.currency===c?'selected':''}>${c}</option>`).join('')}
+      </select>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:10px">
       <input type="date" data-act-change="setHoldingStartDate" value="${d.startDate}" style="flex:1;background:${t.surface2};border:1px solid ${t.border};border-radius:10px;color:${t.text};font-family:'JetBrains Mono',monospace;font-size:12.5px;padding:9px 10px">

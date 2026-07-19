@@ -35,7 +35,7 @@ function renderToday(){
   const dwMet = dw>=5;
   const liCountWeek = (()=>{ let n=0; for(let i=0;i<7;i++){ const dk=dateKey(addDays(today,-i)); const c=S.checkins[dk]; if(c&&c.linkedin) n++; } return n; })();
   const monthCutoff = dateKey(addDays(today,-29));
-  const monthSpent = S.financeEntries.filter(e=>e.type==='expense'&&e.date>=monthCutoff).reduce((s,e)=>s+e.amount,0);
+  const monthSpent = S.financeEntries.filter(e=>e.type==='expense'&&e.date>=monthCutoff&&(e.currency||'XOF')===S.financeCurrencyView).reduce((s,e)=>s+e.amount,0);
 
   return `
   <div style="padding:20px 20px 100px;animation:lu-fadein 0.35s ease">
@@ -115,8 +115,8 @@ function renderToday(){
 
     <div data-act="goFinanceTab" style="margin-top:18px;background:${t.surface2};border-radius:16px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;border:1px solid ${t.border}">
       <div>
-        <div style="font-size:11px;font-weight:600;color:${t.textMuted};text-transform:uppercase;letter-spacing:0.5px">Spent this month</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:18px;color:${t.text};margin-top:3px">${fmtMoney(monthSpent)}</div>
+        <div style="font-size:11px;font-weight:600;color:${t.textMuted};text-transform:uppercase;letter-spacing:0.5px">Spent this month (${S.financeCurrencyView})</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:18px;color:${t.text};margin-top:3px">${fmtMoneyFor(monthSpent, S.financeCurrencyView)}</div>
       </div>
       <div style="font-size:12px;color:#F2A93B">Finance →</div>
     </div>
