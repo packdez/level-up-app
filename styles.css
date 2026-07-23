@@ -7,12 +7,37 @@ button{-webkit-appearance:none; appearance:none;}
 
 ::-webkit-scrollbar{width:0; height:0;}
 
+/* ---- app-wide tactile feedback: every clickable element gets a subtle, fast press-down ---- */
+button, [data-act]{
+  transition: transform .12s cubic-bezier(.4,0,.2,1), opacity .12s ease, filter .12s ease, background-color .18s ease, border-color .18s ease;
+  will-change: transform;
+}
+button:active, [data-act]:active{ transform: scale(0.955); opacity:0.88; }
+@media (hover:hover) and (pointer:fine){
+  button:hover, [data-act]:hover{ filter: brightness(1.06); }
+}
+input[type="range"]{ accent-color:#F2A93B; }
+input[type="checkbox"]{ accent-color:#F2A93B; }
+
+/* smooth color/background transitions on cards when theme toggles */
+#screen-root, #screen-root *{ transition: background-color .25s ease, border-color .25s ease, color .25s ease; }
+#screen-root input, #screen-root select, #screen-root textarea, #screen-root svg, #screen-root svg *{ transition:none; }
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+}
+
 @keyframes lu-pop{0%{transform:scale(1)} 45%{transform:scale(1.22)} 100%{transform:scale(1)}}
 @keyframes lu-ring{0%{transform:scale(0.75);opacity:0.7} 100%{transform:scale(2.1);opacity:0}}
 @keyframes lu-flame{0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-2px) rotate(2deg)}}
 @keyframes lu-slideup{from{transform:translateY(24px);opacity:0} to{transform:translateY(0);opacity:1}}
 @keyframes lu-fadein{from{opacity:0} to{opacity:1}}
 @keyframes lu-pop2{from{transform:scale(0.9);opacity:0} to{transform:scale(1);opacity:1}}
+@keyframes lu-tabswitch{from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)}}
+@keyframes lu-dotpulse{0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:0.6}}
+
+.lu-cal-cell{ cursor:pointer; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; aspect-ratio:1; position:relative; }
+.lu-cal-dot{ width:4px; height:4px; border-radius:50%; }
 
 .toast{
   position:fixed; left:50%; bottom:90px; transform:translateX(-50%) translateY(20px);

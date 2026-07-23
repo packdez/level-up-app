@@ -68,6 +68,40 @@ ACTIONS.deleteBlock = () => {
 };
 ACTIONS.addBlock = () => ACTIONS.openBlockEditor(S.scheduleView+'|');
 
+// ---- calendar bookings (one-off events tied to a specific date) ----
+ACTIONS.setScheduleMode = (v) => setState({scheduleMode:v});
+ACTIONS.calPrevMonth = () => setState({calMonthOffset:S.calMonthOffset-1});
+ACTIONS.calNextMonth = () => setState({calMonthOffset:S.calMonthOffset+1});
+ACTIONS.calGoToday = () => setState({calMonthOffset:0, calSelectedDate:dateKey(new Date())});
+ACTIONS.selectCalDate = (dk) => setState({calSelectedDate:dk});
+ACTIONS.openAddBooking = (dk) => setState({addBookingOpen:true, editingBookingId:null, bookingDraft:{date:dk||S.calSelectedDate, start:'09:00', end:'10:00', label:'', cat:'booking'}});
+ACTIONS.editBooking = (arg) => {
+  const idx = arg.indexOf('|'); const dk = arg.slice(0,idx); const id = arg.slice(idx+1);
+  const b = (S.bookings[dk]||[]).find(x=>x.id===id); if(!b) return;
+  setState({addBookingOpen:true, editingBookingId:id, bookingDraft:{date:dk, start:b.start, end:b.end, label:b.label, cat:b.cat}});
+};
+ACTIONS.closeAddBooking = () => setState({addBookingOpen:false});
+ACTIONS.setBookingStart = (v) => setState({bookingDraft:{...S.bookingDraft, start:v}});
+ACTIONS.setBookingEnd = (v) => setState({bookingDraft:{...S.bookingDraft, end:v}});
+ACTIONS.setBookingLabel = (v) => setState({bookingDraft:{...S.bookingDraft, label:v}});
+ACTIONS.setBookingCat = (v) => setState({bookingDraft:{...S.bookingDraft, cat:v}});
+ACTIONS.setBookingDate = (v) => setState({bookingDraft:{...S.bookingDraft, date:v}});
+ACTIONS.submitBooking = () => {
+  const d = S.bookingDraft; if(!d.label || !d.date) return;
+  const list = (S.bookings[d.date]||[]).slice();
+  const cleaned = {id: S.editingBookingId||uid(), start:d.start, end:d.end, label:d.label, cat:d.cat};
+  const idx = list.findIndex(b=>b.id===cleaned.id);
+  if(idx>=0) list[idx]=cleaned; else list.push(cleaned);
+  list.sort((a,b)=>timeToMin(a.start)-timeToMin(b.start));
+  setState({bookings:{...S.bookings, [d.date]:list}, addBookingOpen:false, calSelectedDate:d.date});
+};
+ACTIONS.askDeleteBooking = () => { const d=S.bookingDraft; askConfirm('Delete "'+d.label+'"?', 'deleteBooking'); };
+ACTIONS.deleteBooking = () => {
+  const d = S.bookingDraft; if(!S.editingBookingId) return;
+  const list = (S.bookings[d.date]||[]).filter(b=>b.id!==S.editingBookingId);
+  setState({bookings:{...S.bookings, [d.date]:list}, addBookingOpen:false, confirm:null});
+};
+
 // ---- alarm ----
 ACTIONS.triggerAlarm = (blockJson) => {
   const block = JSON.parse(decodeURIComponent(blockJson));
@@ -211,7 +245,7 @@ ACTIONS.askResetData = () => askConfirm('Reset all data? This cannot be undone.'
 ACTIONS.resetData = () => { try{ localStorage.removeItem(STORAGE_KEY); }catch(e){} window.location.reload(); };
 ACTIONS.exportData = () => {
   const s = S;
-  const toSave = {checkins:s.checkins, financeEntries:s.financeEntries, weeklyReviews:s.weeklyReviews, monthlyReviews:s.monthlyReviews, scheduleTemplates:s.scheduleTemplates, readingList:s.readingList, financeCategories:s.financeCategories, budgets:s.budgets, notifPrefs:s.notifPrefs, investments:s.investments, theme:s.theme, currency:s.currency};
+  const toSave = {checkins:s.checkins, financeEntries:s.financeEntries, weeklyReviews:s.weeklyReviews, monthlyReviews:s.monthlyReviews, scheduleTemplates:s.scheduleTemplates, readingList:s.readingList, financeCategories:s.financeCategories, budgets:s.budgets, notifPrefs:s.notifPrefs, investments:s.investments, theme:s.theme, currency:s.currency, bookings:s.bookings, habitDefs:s.habitDefs};
   const blob = new Blob([JSON.stringify(toSave,null,2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href=url; a.download='levelup-backup-'+dateKey(new Date())+'.json'; a.click();

@@ -28,7 +28,11 @@ function defaultState(){
     notifFired: {},
     habitDefs: defaultHabitDefs(),
     editingHabitId: null, newHabitOpen: false,
-    newHabitDraft: {label:'', type:'bool', target:5}
+    newHabitDraft: {label:'', type:'bool', target:5},
+    bookings: {},
+    scheduleMode: 'routine', calMonthOffset: 0, calSelectedDate: dateKey(new Date()),
+    addBookingOpen: false, editingBookingId: null,
+    bookingDraft: {date: dateKey(new Date()), start:'09:00', end:'10:00', label:'', cat:'booking'}
   };
 }
 
@@ -42,7 +46,9 @@ function loadState(){
         // transient/UI state should never be restored from storage
         tab:'today', moreOpen:false, moreScreen:null, addExpenseOpen:false, financeSettingsOpen:false,
         addBookOpen:false, alarmActive:null, confirm:null, addHoldingOpen:false, investmentDetailId:null,
-        editingBlock:null, ledgerOpen:false, editingHabitId:null, newHabitOpen:false
+        editingBlock:null, ledgerOpen:false, editingHabitId:null, newHabitOpen:false,
+        addBookingOpen:false, editingBookingId:null, calMonthOffset:0, calSelectedDate:dateKey(new Date()),
+        scheduleMode:'routine'
       });
     }
   }catch(e){}
@@ -58,7 +64,7 @@ function persist(){
     scheduleTemplates:s.scheduleTemplates, readingList:s.readingList, financeCategories:s.financeCategories,
     budgets:s.budgets, notifPrefs:s.notifPrefs, notifEnabled:s.notifEnabled, investments:s.investments,
     theme:s.theme, currency:s.currency, notifFired:s.notifFired, financeCurrencyView:s.financeCurrencyView, investCurrencyView:s.investCurrencyView,
-    habitDefs:s.habitDefs
+    habitDefs:s.habitDefs, bookings:s.bookings
   };
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave)); }catch(e){}
 }

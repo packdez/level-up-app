@@ -1,6 +1,6 @@
 // ===================== MASTER RENDER =====================
 
-let PREV_SNAPSHOT = {moreOpen:false, moreScreen:null, financeSettingsOpen:false, ledgerOpen:false, investmentDetailId:null, editingBlock:null, addExpenseOpen:false, addHoldingOpen:false, confirm:null};
+let PREV_SNAPSHOT = {moreOpen:false, moreScreen:null, financeSettingsOpen:false, ledgerOpen:false, investmentDetailId:null, editingBlock:null, addExpenseOpen:false, addHoldingOpen:false, confirm:null, tab:'today', addBookingOpen:false, scheduleMode:'routine'};
 let JUST_OPENED = {};
 function computeJustOpened(){
   JUST_OPENED = {
@@ -12,9 +12,12 @@ function computeJustOpened(){
     blockEditor: !!S.editingBlock && !PREV_SNAPSHOT.editingBlock,
     addExpense: S.addExpenseOpen && !PREV_SNAPSHOT.addExpenseOpen,
     addHolding: S.addHoldingOpen && !PREV_SNAPSHOT.addHoldingOpen,
-    confirm: !!S.confirm && !PREV_SNAPSHOT.confirm
+    addBooking: S.addBookingOpen && !PREV_SNAPSHOT.addBookingOpen,
+    confirm: !!S.confirm && !PREV_SNAPSHOT.confirm,
+    tabChanged: S.tab !== PREV_SNAPSHOT.tab,
+    scheduleModeChanged: S.scheduleMode !== PREV_SNAPSHOT.scheduleMode
   };
-  PREV_SNAPSHOT = {moreOpen:S.moreOpen, moreScreen:S.moreScreen, financeSettingsOpen:S.financeSettingsOpen, ledgerOpen:S.ledgerOpen, investmentDetailId:S.investmentDetailId, editingBlock:S.editingBlock, addExpenseOpen:S.addExpenseOpen, addHoldingOpen:S.addHoldingOpen, confirm:S.confirm};
+  PREV_SNAPSHOT = {moreOpen:S.moreOpen, moreScreen:S.moreScreen, financeSettingsOpen:S.financeSettingsOpen, ledgerOpen:S.ledgerOpen, investmentDetailId:S.investmentDetailId, editingBlock:S.editingBlock, addExpenseOpen:S.addExpenseOpen, addHoldingOpen:S.addHoldingOpen, addBookingOpen:S.addBookingOpen, confirm:S.confirm, tab:S.tab, scheduleMode:S.scheduleMode};
 }
 
 function render(){
@@ -31,6 +34,10 @@ function render(){
   else if(S.tab==='schedule') screenHtml = renderSchedule();
   else if(S.tab==='tracker') screenHtml = renderTracker();
   else if(S.tab==='finance') screenHtml = renderFinance();
+
+  if(JUST_OPENED.tabChanged || JUST_OPENED.scheduleModeChanged){
+    screenHtml = `<div style="animation:lu-tabswitch 0.2s cubic-bezier(.4,0,.2,1)">${screenHtml}</div>`;
+  }
 
   let modalHtml = '';
   if(S.moreScreen==='reading') modalHtml = renderReadingModal();
@@ -53,6 +60,7 @@ function render(){
     ${renderAddExpenseSheet()}
     ${renderAddHoldingSheet()}
     ${renderBlockEditorSheet()}
+    ${renderAddBookingSheet()}
     ${renderAlarmOverlay()}
     ${renderConfirmModal()}
   `;

@@ -9,7 +9,8 @@ function renderToday(){
   const score = scoreOf(checkin);
   const streak = streakCount();
   const nowMin = today.getHours()*60+today.getMinutes();
-  const blocksRaw = S.scheduleTemplates[dt] || [];
+  const todayBookings = (S.bookings[todayKey] || []).map(b=>({...b, isBooking:true}));
+  const blocksRaw = [...(S.scheduleTemplates[dt] || []), ...todayBookings].sort((a,b)=>timeToMin(a.start)-timeToMin(b.start));
   const nowPct = (nowMin/1440*100).toFixed(2);
 
   const timelineSegs = blocksRaw.map(b=>{
@@ -26,7 +27,7 @@ function renderToday(){
       const val = checkin[h.field]||0;
       const met = val>=h.target;
       return `
-      <div style="display:flex;align-items:center;gap:12px;background:${t.surface};border-radius:14px;padding:12px 14px;border:1px solid ${t.border}">
+      <div style="display:flex;align-items:center;gap:12px;background:${t.surface};border-radius:14px;padding:12px 14px;border:1px solid ${t.border};box-shadow:${t.shadow}">
         <div style="width:26px;height:26px;border-radius:50%;background:${met?'#F2A93B':'transparent'};border:2px solid ${met?'#F2A93B':t.textMuted};flex-shrink:0"></div>
         <div style="flex:1">
           <div style="font-size:14px;font-weight:600;color:${t.text}">${escapeHtml(h.label)}</div>
@@ -41,7 +42,7 @@ function renderToday(){
     }
     const on = checkin[h.field];
     return `
-    <div data-act="toggleHabit" data-arg="${h.field}" style="display:flex;align-items:center;gap:12px;background:${t.surface};border-radius:14px;padding:12px 14px;border:1px solid ${t.border};cursor:pointer">
+    <div data-act="toggleHabit" data-arg="${h.field}" style="display:flex;align-items:center;gap:12px;background:${t.surface};border-radius:14px;padding:12px 14px;border:1px solid ${t.border};box-shadow:${t.shadow};cursor:pointer">
       <div style="width:26px;height:26px;border-radius:50%;background:${on?'#F2A93B':'transparent'};border:2px solid ${on?'#F2A93B':t.textMuted};flex-shrink:0"></div>
       <div style="flex:1"><div style="font-size:14px;font-weight:600;color:${t.text}">${escapeHtml(h.label)}</div></div>
       <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${on?'#F2A93B':t.textMuted}">${on?'DONE':'—'}</div>
@@ -63,8 +64,8 @@ function renderToday(){
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
-        <button data-act="toggleTheme" style="width:32px;height:32px;border-radius:10px;background:${t.surface};border:1px solid ${t.border};display:flex;align-items:center;justify-content:center;cursor:pointer">
-          <div style="width:14px;height:14px;border-radius:50%;background:${t.themeIconColor}"></div>
+        <button data-act="toggleTheme" style="width:32px;height:32px;border-radius:10px;background:${t.surface};border:1px solid ${t.border};box-shadow:${t.shadow};display:flex;align-items:center;justify-content:center;cursor:pointer">
+          ${icon(S.theme==='dark'?'moon':'sun', {size:16, color:t.themeIconColor})}
         </button>
         <div style="text-align:right">
           <div style="display:flex;align-items:center;gap:5px;justify-content:flex-end">
@@ -76,7 +77,7 @@ function renderToday(){
       </div>
     </div>
 
-    <div style="background:${t.surface};border-radius:18px;padding:14px 16px;margin-bottom:14px;border:1px solid ${t.border}">
+    <div style="background:${t.surface};border-radius:18px;padding:14px 16px;margin-bottom:14px;border:1px solid ${t.border};box-shadow:${t.shadow}">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
         <span style="font-size:11px;font-weight:600;color:${t.textMuted};text-transform:uppercase;letter-spacing:0.5px">Today's timeline</span>
         <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#F2A93B">${nowLabel}</span>
@@ -94,23 +95,26 @@ function renderToday(){
           <div style="font-size:9px;color:${t.textMuted};letter-spacing:0.3px">SCORE</div>
         </div>
       </div>
-      <div style="flex:1;background:${t.surface};border-radius:18px;padding:14px 16px;border:1px solid ${t.border};display:flex;flex-direction:column;justify-content:center">
+      <div style="flex:1;background:${t.surface};border-radius:18px;padding:14px 16px;border:1px solid ${t.border};box-shadow:${t.shadow};display:flex;flex-direction:column;justify-content:center">
         <div style="font-size:11px;font-weight:600;color:${t.textMuted};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Next up</div>
         ${nextBlock ? `
-          <div style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:${t.text};margin-bottom:2px">${escapeHtml(nextBlock.label)}</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+            ${nextBlock.isBooking ? icon('calendarPlus',{size:13,color:CAT_COLORS.booking}) : ''}
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:${t.text}">${escapeHtml(nextBlock.label)}</div>
+          </div>
           <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#F2A93B;margin-bottom:8px">in ${timeToMin(nextBlock.start)-nowMin} min · ${nextBlock.start}</div>
-          <button data-act="triggerAlarm" data-arg="${encodeURIComponent(JSON.stringify(nextBlock))}" style="align-self:flex-start;background:rgba(242,169,59,0.15);border:1px solid rgba(242,169,59,0.4);color:#F2A93B;font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer">Preview alarm</button>
+          <button data-act="triggerAlarm" data-arg="${encodeURIComponent(JSON.stringify(nextBlock))}" style="align-self:flex-start;display:inline-flex;align-items:center;gap:5px;background:rgba(242,169,59,0.15);border:1px solid rgba(242,169,59,0.4);color:#F2A93B;font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer">${icon('bell',{size:12,color:'#F2A93B'})}Preview alarm</button>
         ` : `<div style="font-size:13px;color:${t.textMuted}">Day's blocks are done.</div>`}
       </div>
     </div>
 
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin:18px 0 10px">
       <span style="font-size:11px;font-weight:600;color:${t.textMuted};text-transform:uppercase;letter-spacing:0.5px">Core habits</span>
-      <button data-act="openHabits" style="background:none;border:none;color:#F2A93B;font-size:11px;font-weight:600;cursor:pointer">Edit</button>
+      <button data-act="openHabits" style="background:none;border:none;color:#F2A93B;font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px">${icon('edit',{size:12,color:'#F2A93B'})}Edit</button>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px">
       ${habitRowsHtml}
-      <div data-act="toggleLinkedin" style="display:flex;align-items:center;gap:12px;background:${t.surface};border-radius:14px;padding:12px 14px;border:1px solid ${t.border};cursor:pointer">
+      <div data-act="toggleLinkedin" style="display:flex;align-items:center;gap:12px;background:${t.surface};border-radius:14px;padding:12px 14px;border:1px solid ${t.border};box-shadow:${t.shadow};cursor:pointer">
         <div style="width:26px;height:26px;border-radius:50%;background:${checkin.linkedin?'#F2A93B':'transparent'};border:2px solid ${checkin.linkedin?'#F2A93B':t.textMuted};flex-shrink:0"></div>
         <div style="flex:1">
           <div style="font-size:14px;font-weight:600;color:${t.text}">LinkedIn Post</div>
@@ -119,18 +123,30 @@ function renderToday(){
       </div>
     </div>
 
-    <div data-act="goFinanceTab" style="margin-top:18px;background:${t.surface2};border-radius:16px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;border:1px solid ${t.border}">
-      <div>
-        <div style="font-size:11px;font-weight:600;color:${t.textMuted};text-transform:uppercase;letter-spacing:0.5px">Spent this month (${S.financeCurrencyView})</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:18px;color:${t.text};margin-top:3px">${fmtMoneyFor(monthSpent, S.financeCurrencyView)}</div>
+    <div data-act="goFinanceTab" style="margin-top:18px;background:${t.surface2};border-radius:16px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;border:1px solid ${t.border};box-shadow:${t.shadow}">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:36px;height:36px;border-radius:11px;background:rgba(242,169,59,0.14);display:flex;align-items:center;justify-content:center;flex-shrink:0">${icon('wallet',{size:17,color:'#F2A93B'})}</div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:${t.textMuted};text-transform:uppercase;letter-spacing:0.5px">Spent this month (${S.financeCurrencyView})</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:18px;color:${t.text};margin-top:3px">${fmtMoneyFor(monthSpent, S.financeCurrencyView)}</div>
+        </div>
       </div>
-      <div style="font-size:12px;color:#F2A93B">Finance →</div>
+      <div style="display:flex;align-items:center;color:#F2A93B">${icon('chevronRight',{size:16,color:'#F2A93B'})}</div>
     </div>
   </div>`;
 }
 
-function renderSchedule(){
-  const t = T();
+function renderScheduleModeToggle(t){
+  const modes = [{k:'routine', l:'Routine', i:'refresh'}, {k:'calendar', l:'Calendar', i:'calendar'}];
+  return `<div style="display:flex;gap:8px;margin-bottom:16px;background:${t.surface2};border-radius:14px;padding:4px">
+    ${modes.map(m=>{
+      const active = S.scheduleMode===m.k;
+      return `<button data-act="setScheduleMode" data-arg="${m.k}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 4px;border-radius:11px;background:${active?t.surface:'transparent'};box-shadow:${active?t.shadow:'none'};border:none;color:${active?'#F2A93B':t.textMuted};font-size:12.5px;font-weight:700;cursor:pointer">${icon(m.i,{size:14,color:active?'#F2A93B':t.textMuted})}${m.l}</button>`;
+    }).join('')}
+  </div>`;
+}
+
+function renderRoutineSchedule(t){
   const views = [
     {key:'jog', label:'Tue/Thu'}, {key:'gym', label:'Mon/Wed/Fri'}, {key:'weekend', label:'Weekend'}
   ];
@@ -147,21 +163,90 @@ function renderSchedule(){
   const rowsHtml = blocks.map(b=>{
     const isNow = S.scheduleView===dt && timeToMin(b.start)<=nowMin && nowMin<timeToMin(b.end);
     return `
-    <div style="display:flex;align-items:center;gap:10px;background:${t.surface};border-radius:14px;padding:10px 12px;border:1px solid ${isNow?'rgba(242,169,59,0.5)':t.border}">
-      <div style="width:8px;height:8px;border-radius:50%;background:${CAT_COLORS[b.cat]};flex-shrink:0"></div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${t.textMuted};width:88px;flex-shrink:0">${b.start}–${b.end}</div>
+    <div style="display:flex;align-items:center;gap:10px;background:${t.surface};border-radius:14px;padding:10px 12px;border:1px solid ${isNow?'rgba(242,169,59,0.5)':t.border};box-shadow:${t.shadow}">
+      <div style="width:30px;height:30px;border-radius:9px;background:${CAT_COLORS[b.cat]}22;display:flex;align-items:center;justify-content:center;flex-shrink:0">${icon(CAT_ICONS[b.cat]||'clock',{size:14,color:CAT_COLORS[b.cat]})}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${t.textMuted};width:82px;flex-shrink:0">${b.start}–${b.end}</div>
       <div style="flex:1;font-size:13px;color:${t.text};font-weight:500">${escapeHtml(b.label)}</div>
-      <button data-act="triggerAlarm" data-arg="${encodeURIComponent(JSON.stringify(b))}" style="width:26px;height:26px;border-radius:8px;background:${t.surface2};border:none;color:#F2A93B;font-size:12px;cursor:pointer">◔</button>
-      <button data-act="openBlockEditor" data-arg="${S.scheduleView}|${b.id}" style="width:26px;height:26px;border-radius:8px;background:${t.surface2};border:none;color:${t.textMuted};font-size:12px;cursor:pointer">✎</button>
+      <button data-act="triggerAlarm" data-arg="${encodeURIComponent(JSON.stringify(b))}" style="width:28px;height:28px;border-radius:8px;background:${t.surface2};border:none;display:flex;align-items:center;justify-content:center;cursor:pointer">${icon('bell',{size:13,color:'#F2A93B'})}</button>
+      <button data-act="openBlockEditor" data-arg="${S.scheduleView}|${b.id}" style="width:28px;height:28px;border-radius:8px;background:${t.surface2};border:none;display:flex;align-items:center;justify-content:center;cursor:pointer">${icon('edit',{size:13,color:t.textMuted})}</button>
     </div>`;
   }).join('');
 
   return `
-  <div style="padding:20px 20px 100px">
-    <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:${t.text};margin-bottom:14px">Schedule</div>
     <div style="display:flex;gap:8px;margin-bottom:16px">${optsHtml}</div>
     <div style="display:flex;flex-direction:column;gap:8px">${rowsHtml}</div>
-    <button data-act="addBlock" style="margin-top:14px;width:100%;padding:12px;border-radius:14px;background:rgba(242,169,59,0.12);border:1px dashed rgba(242,169,59,0.5);color:#F2A93B;font-size:13px;font-weight:600;cursor:pointer">+ Add block</button>
+    <button data-act="addBlock" style="margin-top:14px;width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-radius:14px;background:rgba(242,169,59,0.12);border:1px dashed rgba(242,169,59,0.5);color:#F2A93B;font-size:13px;font-weight:600;cursor:pointer">${icon('plus',{size:14,color:'#F2A93B'})}Add block</button>
+  `;
+}
+
+function renderCalendarSchedule(t){
+  const todayD = new Date();
+  const todayK = dateKey(todayD);
+  const base = new Date(todayD.getFullYear(), todayD.getMonth(), 1);
+  const view = addMonths(base, S.calMonthOffset);
+  const daysIn = new Date(view.getFullYear(), view.getMonth()+1, 0).getDate();
+  const leadBlank = (view.getDay()===0?6:view.getDay()-1);
+  const monthLabel = view.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+
+  let cells = '';
+  for(let i=0;i<leadBlank;i++) cells += `<div></div>`;
+  for(let d=1; d<=daysIn; d++){
+    const dObj = new Date(view.getFullYear(), view.getMonth(), d);
+    const dk = dateKey(dObj);
+    const isToday = dk===todayK;
+    const isSel = dk===S.calSelectedDate;
+    const hasBookings = (S.bookings[dk]||[]).length>0;
+    cells += `<div class="lu-cal-cell" data-act="selectCalDate" data-arg="${dk}" style="background:${isSel?'#F2A93B':isToday?t.surface2:'transparent'};border:1px solid ${isSel?'#F2A93B':isToday?'rgba(242,169,59,0.4)':'transparent'}">
+      <span style="font-size:12.5px;font-weight:${isToday||isSel?'700':'500'};color:${isSel?'#0F1B2B':t.text}">${d}</span>
+      ${hasBookings ? `<div class="lu-cal-dot" style="background:${isSel?'#0F1B2B':'#F2A93B'}"></div>` : ''}
+    </div>`;
+  }
+  const weekdayLabels = ['M','T','W','T','F','S','S'].map(l=>`<div style="text-align:center;font-size:10px;font-weight:600;color:${t.textMuted}">${l}</div>`).join('');
+
+  const selDate = new Date(S.calSelectedDate+'T00:00:00');
+  const selDt = dayType(selDate);
+  const routineBlocks = (S.scheduleTemplates[selDt]||[]).map(b=>({...b, isRoutine:true}));
+  const bookedBlocks = (S.bookings[S.calSelectedDate]||[]).map(b=>({...b, isRoutine:false}));
+  const dayBlocks = [...routineBlocks, ...bookedBlocks].sort((a,b)=>timeToMin(a.start)-timeToMin(b.start));
+  const selLabel = selDate.toLocaleDateString(undefined,{weekday:'long', month:'short', day:'numeric'});
+
+  const agendaHtml = dayBlocks.length ? dayBlocks.map(b=>`
+    <div style="display:flex;align-items:center;gap:10px;background:${t.surface};border-radius:14px;padding:10px 12px;border:1px solid ${t.border};box-shadow:${t.shadow};${b.isRoutine?'opacity:0.72':''}">
+      <div style="width:30px;height:30px;border-radius:9px;background:${CAT_COLORS[b.cat]}22;display:flex;align-items:center;justify-content:center;flex-shrink:0">${icon(CAT_ICONS[b.cat]||'clock',{size:14,color:CAT_COLORS[b.cat]})}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${t.textMuted};width:82px;flex-shrink:0">${b.start}–${b.end}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;color:${t.text};font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(b.label)}</div>
+        <div style="font-size:10px;color:${t.textMuted};text-transform:uppercase;letter-spacing:0.4px">${b.isRoutine?'Routine':'Booked'}</div>
+      </div>
+      ${b.isRoutine ? '' : `<button data-act="editBooking" data-arg="${S.calSelectedDate}|${b.id}" style="width:28px;height:28px;border-radius:8px;background:${t.surface2};border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">${icon('edit',{size:13,color:t.textMuted})}</button>`}
+    </div>`).join('') : `<div style="text-align:center;padding:24px 0;color:${t.textMuted};font-size:13px">Nothing on the books for this day yet.</div>`;
+
+  return `
+    <div style="background:${t.surface};border-radius:18px;padding:14px 16px;border:1px solid ${t.border};box-shadow:${t.shadow};margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <button data-act="calPrevMonth" style="width:28px;height:28px;border-radius:8px;background:${t.surface2};border:none;display:flex;align-items:center;justify-content:center;cursor:pointer">${icon('chevronLeft',{size:14,color:t.text})}</button>
+        <div data-act="calGoToday" style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:${t.text};cursor:pointer">${monthLabel}</div>
+        <button data-act="calNextMonth" style="width:28px;height:28px;border-radius:8px;background:${t.surface2};border:none;display:flex;align-items:center;justify-content:center;cursor:pointer">${icon('chevronRight',{size:14,color:t.text})}</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px">${weekdayLabels}</div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">${cells}</div>
+    </div>
+
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px">
+      <span style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;color:${t.text}">${selLabel}</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">${agendaHtml}</div>
+    <button data-act="openAddBooking" data-arg="${S.calSelectedDate}" style="margin-top:14px;width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-radius:14px;background:rgba(242,169,59,0.12);border:1px dashed rgba(242,169,59,0.5);color:#F2A93B;font-size:13px;font-weight:600;cursor:pointer">${icon('calendarPlus',{size:14,color:'#F2A93B'})}Book something for this day</button>
+  `;
+}
+
+function renderSchedule(){
+  const t = T();
+  return `
+  <div style="padding:20px 20px 100px">
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:${t.text};margin-bottom:14px">Schedule</div>
+    ${renderScheduleModeToggle(t)}
+    ${S.scheduleMode==='calendar' ? renderCalendarSchedule(t) : renderRoutineSchedule(t)}
   </div>`;
 }
 
@@ -174,7 +259,7 @@ function renderTracker(){
 
   const viewOpts = ['day','week','month','year'].map(v=>{
     const active = S.trackerView===v;
-    return `<button data-act="setTrackerView" data-arg="${v}" style="flex:1;padding:8px 2px;border-radius:10px;background:${active?'#F2A93B22':t.surface};border:1px solid ${t.border};color:${active?'#F2A93B':t.textMuted};font-size:11px;font-weight:600;cursor:pointer">${v[0].toUpperCase()+v.slice(1)}</button>`;
+    return `<button data-act="setTrackerView" data-arg="${v}" style="flex:1;padding:8px 2px;border-radius:10px;background:${active?'#F2A93B22':t.surface};border:1px solid ${t.border};box-shadow:${t.shadow};color:${active?'#F2A93B':t.textMuted};font-size:11px;font-weight:600;cursor:pointer">${v[0].toUpperCase()+v.slice(1)}</button>`;
   }).join('');
 
   let body = '';
@@ -189,14 +274,14 @@ function renderTracker(){
     const rows = S.habitDefs.map(h=>{
       if(h.type==='number'){
         const val = tCheckin[h.field]||0; const met = val>=h.target;
-        return `<div data-act="trackerToggleNumHabit" data-arg="${h.field}" style="display:flex;align-items:center;gap:12px;background:${t.surface};border-radius:14px;padding:12px 14px;border:1px solid ${t.border};cursor:pointer">
+        return `<div data-act="trackerToggleNumHabit" data-arg="${h.field}" style="display:flex;align-items:center;gap:12px;background:${t.surface};border-radius:14px;padding:12px 14px;border:1px solid ${t.border};box-shadow:${t.shadow};cursor:pointer">
           <div style="width:24px;height:24px;border-radius:50%;background:${met?'#F2A93B':'transparent'};border:2px solid ${met?'#F2A93B':t.textMuted};flex-shrink:0"></div>
           <div style="flex:1;font-size:14px;font-weight:600;color:${t.text}">${escapeHtml(h.label)} ${h.target}+</div>
           <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${met?'#F2A93B':t.textMuted}">${val.toFixed(1)}</div>
         </div>`;
       }
       const on = tCheckin[h.field];
-      return `<div data-act="trackerToggleHabit" data-arg="${h.field}" style="display:flex;align-items:center;gap:12px;background:${t.surface};border-radius:14px;padding:12px 14px;border:1px solid ${t.border};cursor:pointer">
+      return `<div data-act="trackerToggleHabit" data-arg="${h.field}" style="display:flex;align-items:center;gap:12px;background:${t.surface};border-radius:14px;padding:12px 14px;border:1px solid ${t.border};box-shadow:${t.shadow};cursor:pointer">
         <div style="width:24px;height:24px;border-radius:50%;background:${on?'#F2A93B':'transparent'};border:2px solid ${on?'#F2A93B':t.textMuted};flex-shrink:0"></div>
         <div style="flex:1;font-size:14px;font-weight:600;color:${t.text}">${escapeHtml(h.label)}</div>
         <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${on?'#F2A93B':t.textMuted}">${on?'DONE':'—'}</div>
@@ -204,9 +289,9 @@ function renderTracker(){
     }).join('');
     body = `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <button data-act="trackerPrevDay" style="background:${t.surface};border:1px solid ${t.border};color:${t.text};width:32px;height:32px;border-radius:10px;cursor:pointer">‹</button>
+        <button data-act="trackerPrevDay" style="background:${t.surface};border:1px solid ${t.border};box-shadow:${t.shadow};color:${t.text};width:32px;height:32px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">${icon('chevronLeft',{size:15,color:t.text})}</button>
         <div style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;color:${t.text}">${tDate.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}</div>
-        <button data-act="trackerNextDay" style="background:${t.surface};border:1px solid ${t.border};color:${t.text};width:32px;height:32px;border-radius:10px;cursor:pointer">›</button>
+        <button data-act="trackerNextDay" style="background:${t.surface};border:1px solid ${t.border};box-shadow:${t.shadow};color:${t.text};width:32px;height:32px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">${icon('chevronRight',{size:15,color:t.text})}</button>
       </div>
       <div style="text-align:center;margin-bottom:16px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#F2A93B">${tCompleted}/${S.habitDefs.length} completed · ${tScore}%</span></div>
       <div style="display:flex;flex-direction:column;gap:8px">${rows}</div>`;
@@ -268,8 +353,8 @@ function renderTracker(){
       <div style="font-size:11px;font-weight:600;color:${t.textMuted};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">${today.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</div>
       <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px">${cells}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div style="background:${t.surface};border-radius:14px;padding:12px;border:1px solid ${t.border}"><div style="font-size:10px;color:${t.textMuted};text-transform:uppercase">Avg score</div><div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:${t.text};margin-top:4px">${monthAvg}%</div></div>
-        <div style="background:${t.surface};border-radius:14px;padding:12px;border:1px solid ${t.border}"><div style="font-size:10px;color:${t.textMuted};text-transform:uppercase">Best streak</div><div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:${t.text};margin-top:4px">${monthBest}d</div></div>
+        <div style="background:${t.surface};border-radius:14px;padding:12px;border:1px solid ${t.border};box-shadow:${t.shadow}"><div style="font-size:10px;color:${t.textMuted};text-transform:uppercase">Avg score</div><div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:${t.text};margin-top:4px">${monthAvg}%</div></div>
+        <div style="background:${t.surface};border-radius:14px;padding:12px;border:1px solid ${t.border};box-shadow:${t.shadow}"><div style="font-size:10px;color:${t.textMuted};text-transform:uppercase">Best streak</div><div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:${t.text};margin-top:4px">${monthBest}d</div></div>
       </div>`;
   }
 
@@ -293,8 +378,8 @@ function renderTracker(){
       <div style="font-size:11px;font-weight:600;color:${t.textMuted};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">${today.getFullYear()}</div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">${cells}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div style="background:${t.surface};border-radius:14px;padding:12px;border:1px solid ${t.border}"><div style="font-size:10px;color:${t.textMuted};text-transform:uppercase">Avg score</div><div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:${t.text};margin-top:4px">${yearAvg}%</div></div>
-        <div style="background:${t.surface};border-radius:14px;padding:12px;border:1px solid ${t.border}"><div style="font-size:10px;color:${t.textMuted};text-transform:uppercase">Longest streak</div><div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:${t.text};margin-top:4px">${yearBest}d</div></div>
+        <div style="background:${t.surface};border-radius:14px;padding:12px;border:1px solid ${t.border};box-shadow:${t.shadow}"><div style="font-size:10px;color:${t.textMuted};text-transform:uppercase">Avg score</div><div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:${t.text};margin-top:4px">${yearAvg}%</div></div>
+        <div style="background:${t.surface};border-radius:14px;padding:12px;border:1px solid ${t.border};box-shadow:${t.shadow}"><div style="font-size:10px;color:${t.textMuted};text-transform:uppercase">Longest streak</div><div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:${t.text};margin-top:4px">${yearBest}d</div></div>
       </div>`;
   }
 

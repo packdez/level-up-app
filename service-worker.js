@@ -1,6 +1,6 @@
-const CACHE = 'levelup-v6';
+const CACHE = 'levelup-v7';
 const ASSETS = [
-  './', './index.html', './index.html?v=2', './styles.css',
+  './', './index.html', './index.html?v=3', './styles.css', './icons.js',
   './schedule-data.js', './state.js', './actions.js', './render.js', './render-finance.js', './render-modals.js', './app.js',
   './manifest.json', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-192-maskable.png', './icons/icon-512-maskable.png'
 ];

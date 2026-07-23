@@ -1,7 +1,8 @@
 // ===================== CONSTANTS & DEFAULT DATA =====================
 
-const CAT_COLORS = {habit:'#F2A93B', work:'#4C8DFF', upwork:'#9B6BFF', linkedin:'#35C4E0', cook:'#3DDC84', gym:'#FF6B5E', rest:'#4A5A72', reset:'#8B7FD8'};
-const CAT_LABELS = {habit:'Habit', work:'Deep Work', upwork:'Upwork', linkedin:'LinkedIn', cook:'Cook & Eat', gym:'Workout', rest:'Break', reset:'Wind-down'};
+const CAT_COLORS = {habit:'#F2A93B', work:'#4C8DFF', upwork:'#9B6BFF', linkedin:'#35C4E0', cook:'#3DDC84', gym:'#FF6B5E', rest:'#4A5A72', reset:'#8B7FD8', booking:'#E0A93B'};
+const CAT_LABELS = {habit:'Habit', work:'Deep Work', upwork:'Upwork', linkedin:'LinkedIn', cook:'Cook & Eat', gym:'Workout', rest:'Break', reset:'Wind-down', booking:'Event'};
+const CAT_ICONS = {habit:'target', work:'briefcase', upwork:'briefcase', linkedin:'linkedin', cook:'coffee', gym:'dumbbell', rest:'moon', reset:'refresh', booking:'calendarPlus'};
 
 const FIN_CATS_DEFAULT = ['Food/Groceries','Work/Business','Transport','Subscriptions','Health/Fitness','Personal/Discretionary','Other'];
 const FIN_COLORS = {'Food/Groceries':'#F2A93B','Work/Business':'#4C8DFF','Transport':'#35C4E0','Subscriptions':'#9B6BFF','Health/Fitness':'#3DDC84','Personal/Discretionary':'#FF6B5E','Other':'#7C8AA0'};
@@ -9,8 +10,8 @@ const FIN_COLORS = {'Food/Groceries':'#F2A93B','Work/Business':'#4C8DFF','Transp
 const DAYTYPE_COLOR = {jog:'#4C8DFF', gym:'#FF6B5E', weekend:'#F2A93B'};
 const DAYTYPE_LABEL = {jog:'Jog Day', gym:'Gym Day', weekend:'Weekend'};
 
-const LIGHT_T = {bg:'#F5F3EF', surface:'#FFFFFF', surface2:'#ECE8E1', text:'#171B21', textMuted:'rgba(23,27,33,0.55)', border:'rgba(23,27,33,0.09)', navBg:'#FFFFFF', themeIconColor:'#F2A93B'};
-const DARK_T  = {bg:'#0F1B2B', surface:'#16243A', surface2:'#1C2E48', text:'#EDEFF3', textMuted:'rgba(237,239,243,0.55)', border:'rgba(255,255,255,0.07)', navBg:'#0B1420', themeIconColor:'#7C90AE'};
+const LIGHT_T = {bg:'#F5F3EF', surface:'#FFFFFF', surface2:'#ECE8E1', text:'#171B21', textMuted:'rgba(23,27,33,0.55)', border:'rgba(23,27,33,0.09)', navBg:'#FFFFFF', themeIconColor:'#F2A93B', shadow:'0 1px 2px rgba(23,27,33,0.05), 0 4px 14px rgba(23,27,33,0.05)'};
+const DARK_T  = {bg:'#0F1B2B', surface:'#16243A', surface2:'#1C2E48', text:'#EDEFF3', textMuted:'rgba(237,239,243,0.55)', border:'rgba(255,255,255,0.07)', navBg:'#0B1420', themeIconColor:'#7C90AE', shadow:'0 1px 2px rgba(0,0,0,0.18), 0 6px 18px rgba(0,0,0,0.22)'};
 
 const CURRENCY_INFO = {
   USD:{symbol:'$', prefix:true, decimals:2},
